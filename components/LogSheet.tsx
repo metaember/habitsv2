@@ -1,11 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Habit, HabitType } from '@prisma/client'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
+import { Habit } from '@prisma/client'
 import { toast } from 'react-hot-toast'
 
 interface LogSheetProps {
@@ -29,7 +25,7 @@ export default function LogSheet({ habit, onClose, onLog }: LogSheetProps) {
         },
         body: JSON.stringify({
           value: habit.type === 'break' ? 1 : value,
-          note,
+          note: note.trim() || undefined,
         }),
       })
 
@@ -39,42 +35,34 @@ export default function LogSheet({ habit, onClose, onLog }: LogSheetProps) {
         onClose()
         
         // Show success message with undo option
-        toast.success(
-          <div className="flex items-center justify-between">
-            <span>Event logged successfully!</span>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={async () => {
-                // Void the event
-                try {
-                  const voidRes = await fetch(`/api/events/${data.eventId}/void`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      reason: 'mistap'
-                    }),
-                  })
-                  
-                  if (voidRes.ok) {
-                    toast.success('Event undone!')
-                    onLog() // Refresh the events
-                  } else {
-                    toast.error('Failed to undo event')
-                  }
-                } catch (error) {
+        toast.success('Event logged successfully!', {
+          duration: 5000,
+          action: {
+            label: 'Undo',
+            onClick: async () => {
+              try {
+                const voidRes = await fetch(`/api/events/${data.eventId}/void`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    reason: 'mistap'
+                  }),
+                })
+                
+                if (voidRes.ok) {
+                  toast.success('Event undone!')
+                  onLog() // Refresh the events
+                } else {
                   toast.error('Failed to undo event')
                 }
-                toast.dismiss()
-              }}
-            >
-              Undo
-            </Button>
-          </div>,
-          { duration: 10000 }
-        )
+              } catch (error) {
+                toast.error('Failed to undo event')
+              }
+            }
+          }
+        })
       } else {
         toast.error('Failed to log event')
       }
@@ -86,53 +74,101 @@ export default function LogSheet({ habit, onClose, onLog }: LogSheetProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {habit.emoji && <span>{habit.emoji}</span>}
-            <span>Log: {habit.name}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl transform transition-all">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">{habit.emoji || '⭐'}</div>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Log Progress</h3>
+              <p className="text-sm text-slate-500">{habit.name}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 pb-6 space-y-6">
+          {/* Value Input for Build Habits */}
           {habit.type === 'build' && (
             <div>
-              <Label htmlFor="value">Value</Label>
+              <label className="block text-sm font-medium text-slate-700 mb-3">
+                How much did you complete?
+              </label>
+              <div className="flex gap-2 mb-4">
+                {[1, 2, 3, 5].map((quickValue) => (
+                  <button
+                    key={quickValue}
+                    onClick={() => setValue(quickValue)}
+                    className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                      value === quickValue
+                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {quickValue}
+                  </button>
+                ))}
+              </div>
               <input
-                id="value"
                 type="number"
                 min="1"
                 value={value}
-                onChange={(e) => setValue(Number(e.target.value))}
-                className="w-full p-2 border rounded"
+                onChange={(e) => setValue(Math.max(1, Number(e.target.value)))}
+                className="w-full p-4 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter amount"
               />
             </div>
           )}
           
+          {/* Note */}
           <div>
-            <Label htmlFor="note">Note (optional)</Label>
-            <Textarea
-              id="note"
+            <label className="block text-sm font-medium text-slate-700 mb-3">
+              Add a note (optional)
+            </label>
+            <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Add a note..."
+              placeholder={`How did ${habit.name.toLowerCase()} go today?`}
+              className="w-full p-4 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows={3}
+              maxLength={280}
             />
+            <p className="text-xs text-slate-400 mt-1">
+              {note.length}/280 characters
+            </p>
           </div>
           
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleLog} 
-              className="flex-1"
-              disabled={logging}
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={onClose}
+              className="flex-1 py-4 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-all duration-200"
             >
-              {logging ? 'Logging...' : habit.type === 'build' ? 'Log' : 'Log Incident'}
-            </Button>
+              Cancel
+            </button>
+            <button
+              onClick={handleLog}
+              disabled={logging}
+              className={`flex-1 py-4 px-6 font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                habit.type === 'build'
+                  ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                  : 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/25'
+              }`}
+            >
+              {logging ? 'Logging...' : habit.type === 'build' ? 'Log Progress' : 'Log Incident'}
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

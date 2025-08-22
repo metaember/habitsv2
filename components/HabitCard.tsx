@@ -1,8 +1,6 @@
 'use client'
 
 import { Habit, Event } from '@prisma/client'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useEffect, useState } from 'react'
 import LogSheet from '@/components/LogSheet'
 import { toast } from 'react-hot-toast'
@@ -77,76 +75,93 @@ export default function HabitCard({ habit }: HabitCardProps) {
 
   return (
     <>
-      <Link href={`/habit/${habit.id}`}>
-        <Card className="w-full hover:shadow-lg transition-shadow cursor-pointer">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {habit.emoji && <span className="text-2xl">{habit.emoji}</span>}
-              <span>{habit.name}</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center mb-4">
+      <Link href={`/habit/${habit.id}`} className="block">
+        <div className="bg-white/90 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-6 shadow-lg shadow-slate-200/20 hover:shadow-xl hover:shadow-slate-200/30 transition-all duration-300 hover:scale-[1.02]">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">{habit.emoji || '⭐'}</div>
               <div>
-                <p className="text-sm text-gray-500">
+                <h3 className="text-lg font-semibold text-slate-900">{habit.name}</h3>
+                <p className="text-sm text-slate-500">
                   {habit.type === 'build' 
                     ? `${stats.currentPeriodProgress}/${habit.target} ${periodLabel}` 
                     : 'Break habit'}
                 </p>
-                {habit.type === 'build' && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    {stats.isOnPace ? 'On track' : 'At risk'}
-                  </p>
-                )}
-              </div>
-              <div>
-                {habit.type === 'build' ? (
-                  <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    Streak: {stats.streak}
-                  </span>
-                ) : (
-                  <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    Clean: {stats.timeSinceLastFailure || 0} days
-                  </span>
-                )}
               </div>
             </div>
             
-            {habit.type === 'build' && (
-              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                <div 
-                  className={`h-2.5 rounded-full transition-all ${
-                    stats.isOnPace ? 'bg-blue-600' : 'bg-orange-500'
-                  }`}
-                  style={{ width: `${progressPercentage}%` }}
-                ></div>
+            {/* Status Badge */}
+            {habit.type === 'build' ? (
+              <div className="flex flex-col items-end gap-2">
+                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  stats.isOnPace 
+                    ? 'bg-emerald-100 text-emerald-700' 
+                    : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {stats.isOnPace ? 'On track' : 'At risk'}
+                </div>
+                <div className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-1 rounded-full">
+                  {stats.streak} day streak
+                </div>
+              </div>
+            ) : (
+              <div className="bg-emerald-100 text-emerald-700 text-xs font-medium px-3 py-1 rounded-full">
+                {stats.timeSinceLastFailure || 0} days clean
               </div>
             )}
-            
-            <div className="flex gap-2" onClick={(e) => e.preventDefault()}>
-              <Button 
-                onClick={handleQuickLog}
-                className="flex-1"
-                variant={habit.type === 'build' ? 'default' : 'destructive'}
-                disabled={loading}
-              >
-                {habit.type === 'build' ? '+1' : 'Log Incident'}
-              </Button>
-              <Button
-                onClick={(e) => {
-                  e.preventDefault()
-                  setShowLogSheet(true)
-                }}
-                variant="outline"
-                size="icon"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                </svg>
-              </Button>
+          </div>
+          
+          {/* Progress Bar for Build Habits */}
+          {habit.type === 'build' && (
+            <div className="mb-4">
+              <div className="flex justify-between text-sm text-slate-500 mb-2">
+                <span>Progress</span>
+                <span>{Math.round(progressPercentage)}%</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    stats.isOnPace 
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600' 
+                      : 'bg-gradient-to-r from-amber-500 to-amber-600'
+                  }`}
+                  style={{ width: `${progressPercentage}%` }}
+                />
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          )}
+          
+          {/* Action Buttons */}
+          <div 
+            className="flex gap-3" 
+            onClick={(e) => e.preventDefault()}
+          >
+            <button
+              onClick={handleQuickLog}
+              disabled={loading}
+              className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
+                habit.type === 'build'
+                  ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                  : 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/25'
+              }`}
+            >
+              {habit.type === 'build' ? '+1' : 'Log Incident'}
+            </button>
+            
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                setShowLogSheet(true)
+              }}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-3 rounded-xl transition-all duration-200 hover:scale-105"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </Link>
       
       {showLogSheet && (

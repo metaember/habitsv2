@@ -83,29 +83,32 @@ export default function StatStrip() {
   const stats = calculateAggregateStats()
 
   return (
-    <div className="bg-gray-100 rounded-lg p-4 mb-6">
+    <div className="bg-white/80 backdrop-blur-sm border border-slate-200/50 rounded-2xl p-6 mb-6 shadow-xl shadow-slate-200/20">
       <div className="flex justify-between items-center">
         <div>
-          <p className="text-sm text-gray-500">Today&apos;s Progress</p>
-          <p className="text-lg font-semibold">
-            {stats.totalOnTrack}/{stats.totalHabits} on track
+          <p className="text-sm text-slate-500 font-medium mb-1">Progress</p>
+          <p className="text-2xl font-bold text-slate-900">
+            {stats.totalOnTrack}<span className="text-slate-400">/{stats.totalHabits}</span>
           </p>
+          <p className="text-sm text-slate-500">habits on track</p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-gray-500">Overall</p>
-          <p className={`text-lg font-semibold ${
-            stats.onTrackPercentage >= 75 ? 'text-green-600' : 
-            stats.onTrackPercentage >= 50 ? 'text-yellow-600' : 'text-red-600'
+          <div className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold ${
+            stats.onTrackPercentage >= 75 ? 'bg-emerald-100 text-emerald-700' : 
+            stats.onTrackPercentage >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'
           }`}>
             {stats.onTrackPercentage}% on-pace
-          </p>
+          </div>
         </div>
       </div>
       {stats.activeStreaks > 0 && (
-        <div className="mt-2 pt-2 border-t border-gray-200">
-          <p className="text-xs text-gray-500">
-            {stats.activeStreaks} active {stats.activeStreaks === 1 ? 'streak' : 'streaks'}
-          </p>
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <p className="text-sm text-slate-600 font-medium">
+              {stats.activeStreaks} active {stats.activeStreaks === 1 ? 'streak' : 'streaks'}
+            </p>
+          </div>
         </div>
       )}
     </div>
