@@ -16,8 +16,9 @@ export const HabitListResponse = z.array(z.object({
   type: z.enum(['build', 'break']),
   target: z.number(),
   period: z.enum(['day', 'week', 'month', 'custom']),
+  unit: z.enum(['count', 'minutes', 'custom']),
+  unitLabel: z.string().nullable(),
   active: z.boolean(),
-  // Add other fields you want to include in the list response
 }))
 
 export const HabitCreateResponse = z.object({
@@ -27,12 +28,12 @@ export const HabitCreateResponse = z.object({
 export const EventListResponse = z.array(z.object({
   id: z.string().uuid(),
   habitId: z.string().uuid(),
-  tsClient: z.string(), // ISO string
-  tsServer: z.string(), // ISO string
+  tsClient: z.union([z.string(), z.date()]).transform(val => val instanceof Date ? val.toISOString() : val), // ISO string or Date
+  tsServer: z.union([z.string(), z.date()]).transform(val => val instanceof Date ? val.toISOString() : val), // ISO string or Date
   value: z.number(),
   note: z.string().nullable(),
   source: z.enum(['ui', 'import', 'webhook', 'puller', 'other']),
-  // Add other fields you want to include in the list response
+  meta: z.any().nullable(), // Allow any JSON structure for meta
 }))
 
 export const EventCreateResponse = z.object({

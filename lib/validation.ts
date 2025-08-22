@@ -6,7 +6,7 @@ export const HabitCreateDto = z.object({
   emoji: z.string().optional(),
   type: z.enum(['build', 'break']),
   target: z.number().positive(),
-  period: z.enum(['day', 'week', 'month', 'custom']).default('week'),
+  period: z.enum(['day', 'week', 'month', 'custom']).default('day'),
   scheduleDowMask: z.number().int().min(0).max(127).optional(),
   unit: z.enum(['count', 'minutes', 'custom']).default('count'),
   unitLabel: z.string().min(1).max(12).optional(),

@@ -1,6 +1,8 @@
 // App Router root layout
 import './globals.css'
 import type { Metadata } from 'next'
+import { Toaster } from 'react-hot-toast'
+import Navigation from '@/components/Navigation'
 
 export const metadata: Metadata = {
   title: 'Habit Tracker',
@@ -14,7 +16,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="pb-16">
+        {children}
+        <Navigation />
+        <Toaster />
+      </body>
     </html>
   )
 }

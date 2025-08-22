@@ -1,6 +1,6 @@
 // Next.js API route to void an event
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { getPrismaClient } from '@/lib/db'
 import { VoidEventDto } from '@/lib/validation'
 import { VoidEventResponse } from '@/lib/api-schema'
 import { z } from 'zod'
@@ -10,7 +10,9 @@ export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  let prisma = null
   try {
+    prisma = await getPrismaClient()
     const body = await request.json()
     
     // Validate event ID
@@ -66,7 +68,7 @@ export async function POST(
         meta: {
           kind: 'void',
           void_of: params.id,
-          reason: validatedData.reason,
+          reason: validatedData.reason || 'other',
         },
       },
     })
@@ -90,5 +92,9 @@ export async function POST(
       { error: { code: 'ServerError', message: 'Failed to void event' } },
       { status: 500 }
     )
+  } finally {
+    if (prisma) {
+      await prisma.$disconnect()
+    }
   }
 }

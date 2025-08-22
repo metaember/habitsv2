@@ -1,6 +1,6 @@
 // Next.js API route for habit events
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { getPrismaClient } from '@/lib/db'
 import { EventCreateDto } from '@/lib/validation'
 import { EventListResponse, EventCreateResponse } from '@/lib/api-schema'
 import { z } from 'zod'
@@ -10,7 +10,9 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  let prisma = null
   try {
+    prisma = await getPrismaClient()
     const { searchParams } = new URL(request.url)
     const from = searchParams.get('from')
     const to = searchParams.get('to')
@@ -36,7 +38,7 @@ export async function GET(
     const events = await prisma.event.findMany({
       where: {
         habitId: params.id,
-        tsClient: dateFilter,
+        ...(Object.keys(dateFilter).length > 0 ? { tsClient: dateFilter } : {}),
       },
       orderBy: {
         tsServer: 'desc',
@@ -61,6 +63,10 @@ export async function GET(
       { error: { code: 'ServerError', message: 'Failed to fetch events' } },
       { status: 500 }
     )
+  } finally {
+    if (prisma) {
+      await prisma.$disconnect()
+    }
   }
 }
 
@@ -69,7 +75,9 @@ export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  let prisma = null
   try {
+    prisma = await getPrismaClient()
     const body = await request.json()
     
     // Validate habit ID
@@ -139,5 +147,9 @@ export async function POST(
       { error: { code: 'ServerError', message: 'Failed to create event' } },
       { status: 500 }
     )
+  } finally {
+    if (prisma) {
+      await prisma.$disconnect()
+    }
   }
 }

@@ -1,12 +1,34 @@
+import { prisma } from '@/lib/db'
+
 /**
  * Export helper functions.
  * These functions handle exporting data in NDJSON format.
  */
 
-// Placeholder for exportToNDJSON function
-// This function should export habits and events to NDJSON format.
 export async function exportToNDJSON() {
-  // Implementation will be added later
-  // For now, we'll return a placeholder
-  return ''
+  try {
+    // Fetch all habits
+    const habits = await prisma.habit.findMany()
+    
+    // Fetch all events
+    const events = await prisma.event.findMany()
+    
+    // Create NDJSON string
+    let ndjson = ''
+    
+    // Add habits to NDJSON
+    for (const habit of habits) {
+      ndjson += JSON.stringify({ kind: 'habit', ...habit }) + '\n'
+    }
+    
+    // Add events to NDJSON
+    for (const event of events) {
+      ndjson += JSON.stringify({ kind: 'event', ...event }) + '\n'
+    }
+    
+    return ndjson
+  } catch (error) {
+    console.error('Export failed:', error)
+    throw error
+  }
 }

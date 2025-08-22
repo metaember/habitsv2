@@ -1,12 +1,16 @@
 // Next.js API route for habits
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { HabitCreateDto, ErrorResponse } from '@/lib/validation'
-import { HabitListResponse, HabitCreateResponse } from '@/lib/api-schema'
+import { getPrismaClient } from '@/lib/db'
+import { HabitCreateDto } from '@/lib/validation'
+import { HabitListResponse, HabitCreateResponse, ErrorResponse } from '@/lib/api-schema'
+import { z } from 'zod'
 
 // GET /api/habits - List all habits
 export async function GET() {
+  let prisma = null
   try {
+    prisma = await getPrismaClient()
+    
     const habits = await prisma.habit.findMany({
       where: { active: true },
       select: {
@@ -16,6 +20,8 @@ export async function GET() {
         type: true,
         target: true,
         period: true,
+        unit: true,
+        unitLabel: true,
         active: true,
       },
     })
@@ -25,17 +31,32 @@ export async function GET() {
     
     return NextResponse.json(habits)
   } catch (error) {
-    console.error('Failed to fetch habits:', error)
+    console.error('Failed to fetch habits - detailed error:', error)
+    
+    if (error instanceof z.ZodError) {
+      console.error('Zod validation error:', error.errors)
+      return NextResponse.json(
+        { error: { code: 'BadRequest', message: 'Invalid response data', details: error.errors } },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: { code: 'ServerError', message: 'Failed to fetch habits' } },
+      { error: { code: 'ServerError', message: 'Failed to fetch habits', details: error instanceof Error ? error.message : 'Unknown error' } },
       { status: 500 }
     )
+  } finally {
+    if (prisma) {
+      await prisma.$disconnect()
+    }
   }
 }
 
 // POST /api/habits - Create a new habit
 export async function POST(request: Request) {
+  let prisma = null
   try {
+    prisma = await getPrismaClient()
     const body = await request.json()
     
     // Validate request body
@@ -72,5 +93,9 @@ export async function POST(request: Request) {
       { error: { code: 'ServerError', message: 'Failed to create habit' } },
       { status: 500 }
     )
+  } finally {
+    if (prisma) {
+      await prisma.$disconnect()
+    }
   }
 }

@@ -3,26 +3,209 @@
  * These functions calculate streaks, time since last failure, and on-pace metrics.
  */
 
-// Placeholder for buildStreak function
-// This function should calculate the streak for build habits.
-export function buildStreak(effectiveEvents: any[], period: string, tz: string) {
-  // Implementation will be added later
-  // For now, we'll return a placeholder
-  return 0
+import { HabitType, Period, Event, Habit } from '@prisma/client'
+import { groupEventsByPeriod, getCurrentPeriod, periodRange } from './period'
+
+export interface HabitStats {
+  streak: number
+  currentPeriodProgress: number
+  isOnPace: boolean
+  adherenceRate: number // Percentage for last 30 days
+  timeSinceLastFailure?: number // Days for break habits
 }
 
-// Placeholder for timeSinceLastFailure function
-// This function should calculate the time since the last failure for break habits.
-export function timeSinceLastFailure(effectiveEvents: any[], tz: string) {
-  // Implementation will be added later
-  // For now, we'll return a placeholder
-  return 0
+/**
+ * Calculate streak for build habits (consecutive successful periods)
+ */
+export function calculateBuildStreak(
+  events: Event[], 
+  habit: Habit,
+  tz: string,
+  weekStart: 'MON' | 'SUN' = 'MON'
+): number {
+  if (events.length === 0) return 0
+  
+  const buckets = groupEventsByPeriod(events, habit.period, tz, weekStart)
+  
+  // Mark successful periods
+  buckets.forEach(bucket => {
+    bucket.success = bucket.total >= habit.target
+  })
+  
+  // Calculate streak from most recent completed period backwards
+  const now = new Date()
+  const currentPeriod = getCurrentPeriod(habit.period, tz, weekStart)
+  
+  // Filter out current period (not yet complete)
+  const completedBuckets = buckets.filter(b => b.end.getTime() <= now.getTime())
+  
+  if (completedBuckets.length === 0) return 0
+  
+  // Count consecutive successes from most recent
+  let streak = 0
+  for (let i = completedBuckets.length - 1; i >= 0; i--) {
+    if (completedBuckets[i].success) {
+      streak++
+    } else {
+      break
+    }
+  }
+  
+  return streak
 }
 
-// Placeholder for onPace function
-// This function should determine if the user is on pace to meet their target.
-export function onPace(now: Date, start: Date, end: Date, achieved: number, target: number) {
-  // Implementation will be added later
-  // For now, we'll return a placeholder
-  return false
+/**
+ * Calculate time since last failure for break habits
+ */
+export function calculateTimeSinceLastFailure(events: Event[]): number {
+  if (events.length === 0) return 0
+  
+  // Find most recent event (which would be a failure for break habits)
+  const sortedEvents = [...events].sort((a, b) => 
+    new Date(b.tsClient).getTime() - new Date(a.tsClient).getTime()
+  )
+  
+  const lastFailure = sortedEvents[0]
+  if (!lastFailure) return 0
+  
+  const now = new Date()
+  const failureDate = new Date(lastFailure.tsClient)
+  
+  // Calculate difference in days
+  const diffMs = now.getTime() - failureDate.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  
+  return diffDays
+}
+
+/**
+ * Check if habit is on pace for current period
+ */
+export function isOnPace(
+  currentPeriodTotal: number,
+  target: number,
+  periodStart: Date,
+  periodEnd: Date
+): boolean {
+  const now = new Date()
+  
+  // If we're past the period end, just check if target was met
+  if (now.getTime() >= periodEnd.getTime()) {
+    return currentPeriodTotal >= target
+  }
+  
+  // Calculate elapsed fraction
+  const totalTime = periodEnd.getTime() - periodStart.getTime()
+  const elapsed = now.getTime() - periodStart.getTime()
+  
+  if (totalTime <= 0) return false
+  
+  const elapsedFraction = Math.min(1, elapsed / totalTime)
+  
+  // Check if on pace
+  return currentPeriodTotal >= target * elapsedFraction
+}
+
+/**
+ * Calculate adherence rate for last N days
+ */
+export function calculateAdherenceRate(
+  events: Event[],
+  habit: Habit,
+  days: number,
+  tz: string,
+  weekStart: 'MON' | 'SUN' = 'MON'
+): number {
+  const endDate = new Date()
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - days)
+  
+  // Filter events within date range
+  const relevantEvents = events.filter(e => {
+    const eventDate = new Date(e.tsClient)
+    return eventDate >= startDate && eventDate <= endDate
+  })
+  
+  if (relevantEvents.length === 0) return 0
+  
+  // Group by period and check success
+  const buckets = groupEventsByPeriod(relevantEvents, habit.period, tz, weekStart)
+  
+  // For build habits: success = meeting target
+  // For break habits: success = no events in period
+  if (habit.type === 'build') {
+    buckets.forEach(bucket => {
+      bucket.success = bucket.total >= habit.target
+    })
+  } else {
+    // For break habits, we need to check all periods in range
+    // A period with no events is successful
+    const currentDate = new Date(startDate)
+    const allPeriods: Array<{ start: Date; end: Date }> = []
+    
+    while (currentDate <= endDate) {
+      const period = periodRange(currentDate, habit.period, weekStart, tz)
+      allPeriods.push(period)
+      
+      // Move to next period
+      currentDate.setTime(period.end.getTime())
+    }
+    
+    // Count successful periods (those without events)
+    let successfulPeriods = 0
+    allPeriods.forEach(period => {
+      const hasFailure = relevantEvents.some(event => {
+        const eventTime = new Date(event.tsClient).getTime()
+        return eventTime >= period.start.getTime() && eventTime < period.end.getTime()
+      })
+      if (!hasFailure) successfulPeriods++
+    })
+    
+    return allPeriods.length > 0 ? (successfulPeriods / allPeriods.length) * 100 : 0
+  }
+  
+  const successfulPeriods = buckets.filter(b => b.success).length
+  return buckets.length > 0 ? (successfulPeriods / buckets.length) * 100 : 0
+}
+
+/**
+ * Get comprehensive stats for a habit
+ */
+export function getHabitStats(
+  habit: Habit,
+  events: Event[],
+  tz: string,
+  weekStart: 'MON' | 'SUN' = 'MON'
+): HabitStats {
+  // Ensure events is an array
+  const eventsArray = Array.isArray(events) ? events : []
+  
+  const currentPeriod = getCurrentPeriod(habit.period, tz, weekStart)
+  
+  // Get current period events
+  const currentPeriodEvents = eventsArray.filter(e => {
+    const eventTime = new Date(e.tsClient).getTime()
+    return eventTime >= currentPeriod.start.getTime() && eventTime < currentPeriod.end.getTime()
+  })
+  
+  const currentPeriodProgress = currentPeriodEvents.reduce((sum, e) => sum + e.value, 0)
+  
+  const stats: HabitStats = {
+    streak: 0,
+    currentPeriodProgress,
+    isOnPace: false,
+    adherenceRate: 0
+  }
+  
+  if (habit.type === 'build') {
+    stats.streak = calculateBuildStreak(eventsArray, habit, tz, weekStart)
+    stats.isOnPace = isOnPace(currentPeriodProgress, habit.target, currentPeriod.start, currentPeriod.end)
+  } else {
+    stats.timeSinceLastFailure = calculateTimeSinceLastFailure(eventsArray)
+    stats.isOnPace = currentPeriodEvents.length === 0 // No failures yet
+  }
+  
+  stats.adherenceRate = calculateAdherenceRate(eventsArray, habit, 30, tz, weekStart)
+  
+  return stats
 }

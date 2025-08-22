@@ -45,6 +45,8 @@ model User {
   name      String
   color     String?
   timezone  String   @default("America/New_York")
+  kioskMode Boolean  @default(false)
+  kioskPin  String?
   Habits    Habit[]
   Events    Event[]
 }

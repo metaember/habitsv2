@@ -1,15 +1,25 @@
 import { PrismaClient } from '@prisma/client'
 
-const prismaClientSingleton = () => {
-  return new PrismaClient()
+// Create a function that returns a connected Prisma client
+export async function getPrismaClient() {
+  const client = new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  })
+  
+  // Ensure connection
+  await client.$connect()
+  return client
 }
 
-type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>
+// For compatibility, also export a singleton for non-critical usage
+const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientSingleton | undefined
+export const prisma = 
+  globalForPrisma.prisma || 
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  })
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
 }
-
-export const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

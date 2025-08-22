@@ -1,6 +1,8 @@
 // Next.js API route for exporting data in NDJSON format
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { Readable } from 'stream'
+import { pipeline } from 'stream/promises'
 
 // GET /api/export.jsonl - Export habits and events in NDJSON format
 export async function GET() {
@@ -8,10 +10,10 @@ export async function GET() {
     // Set the response headers for NDJSON
     const headers = {
       'Content-Type': 'application/x-ndjson',
-      'Transfer-Encoding': 'chunked',
+      'Content-Disposition': 'attachment; filename="habits-export.jsonl"',
     }
     
-    // Create a readable stream
+    // Create a custom response with streaming
     const stream = new ReadableStream({
       async start(controller) {
         try {
@@ -21,7 +23,7 @@ export async function GET() {
           // Stream habits
           for (const habit of habits) {
             const habitRecord = { kind: 'habit', ...habit }
-            controller.enqueue(`${JSON.stringify(habitRecord)}\n`)
+            controller.enqueue(new TextEncoder().encode(`${JSON.stringify(habitRecord)}\n`))
           }
           
           // Fetch all events
@@ -30,7 +32,7 @@ export async function GET() {
           // Stream events
           for (const event of events) {
             const eventRecord = { kind: 'event', ...event }
-            controller.enqueue(`${JSON.stringify(eventRecord)}\n`)
+            controller.enqueue(new TextEncoder().encode(`${JSON.stringify(eventRecord)}\n`))
           }
           
           // Close the stream
@@ -42,7 +44,7 @@ export async function GET() {
     })
     
     // Return the response with the stream
-    return new NextResponse(stream, { headers })
+    return new Response(stream, { headers })
   } catch (error) {
     console.error('Failed to export data:', error)
     return NextResponse.json(
