@@ -1,0 +1,87 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum HabitType {
+  build
+  break
+}
+
+enum Period {
+  day
+  week
+  month
+  custom
+}
+
+enum Unit {
+  count
+  minutes
+  custom
+}
+
+enum Visibility {
+  private
+  household
+  group
+  public_link
+}
+
+enum Source {
+  ui
+  import
+  webhook
+  puller
+  other
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  color     String?
+  timezone  String   @default("America/New_York")
+  Habits    Habit[]
+  Events    Event[]
+}
+
+model Habit {
+  id              String     @id @default(uuid())
+  ownerUserId     String?
+  owner           User?      @relation(fields: [ownerUserId], references: [id])
+  name            String
+  emoji           String?
+  type            HabitType
+  target          Float
+  period          Period
+  scheduleDowMask Int?
+  unit            Unit      @default(count)
+  unitLabel       String?
+  windowStart     String?
+  windowEnd       String?
+  templateKey     String?
+  visibility      Visibility @default(private)
+  active          Boolean    @default(true)
+  events          Event[]
+}
+
+model Event {
+  id        String  @id @default(uuid())
+  habitId   String
+  habit     Habit   @relation(fields: [habitId], references: [id])
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id])
+  tsClient  DateTime
+  tsServer  DateTime @default(now())
+  value     Float    @default(1)
+  note      String?
+  source    Source   @default(ui)
+  clientId  String?
+  meta      Json?
+  @@index([habitId, tsServer])
+  @@index([userId, tsServer])
+}
