@@ -1,6 +1,6 @@
 // Helper function to check if an event is a void event
 export function isVoidEvent(event: any): boolean {
-  return event.meta && event.meta.kind === 'void'
+  return !!(event.meta && event.meta.kind === 'void')
 }
 
 // Helper function to get the ID of the event that was voided

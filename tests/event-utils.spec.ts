@@ -79,4 +79,4 @@ describe('event-utils', () => {
     expect(effectiveEvents.some(e => e.id === '1')).toBe(true)
     expect(effectiveEvents.some(e => e.id === '2')).toBe(true)
   })
-}))
+})

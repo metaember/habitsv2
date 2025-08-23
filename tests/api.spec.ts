@@ -6,20 +6,24 @@ import { POST as voidEvent } from '@/app/api/events/[id]/void/route'
 import { GET as exportData } from '@/app/api/export.jsonl/route'
 
 // Mock Prisma client
+const mockPrismaClient = {
+  habit: {
+    findMany: vi.fn(),
+    create: vi.fn(),
+    findUnique: vi.fn(),
+  },
+  event: {
+    findMany: vi.fn(),
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
+  },
+  $connect: vi.fn(),
+  $disconnect: vi.fn(),
+}
+
 vi.mock('@/lib/db', () => ({
-  prisma: {
-    habit: {
-      findMany: vi.fn(),
-      create: vi.fn(),
-      findUnique: vi.fn(),
-    },
-    event: {
-      findMany: vi.fn(),
-      create: vi.fn(),
-      findFirst: vi.fn(),
-      findUnique: vi.fn(),
-    }
-  }
+  getPrismaClient: vi.fn(() => mockPrismaClient)
 }))
 
 describe('API', () => {
@@ -32,9 +36,20 @@ describe('API', () => {
   })
 
   it('should handle habit creation correctly', async () => {
-    const mockHabit = { id: '1' }
-    const { prisma } = await import('@/lib/db')
-    prisma.habit.create = vi.fn().mockResolvedValue(mockHabit)
+    const mockHabit = { 
+      id: '123e4567-e89b-12d3-a456-426614174000',
+      name: 'Test Habit',
+      type: 'build',
+      target: 1,
+      period: 'day',
+      unit: 'count',
+      unitLabel: null,
+      emoji: null,
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+    mockPrismaClient.habit.create.mockResolvedValue(mockHabit)
     
     const request = new Request('http://localhost:3000/api/habits', {
       method: 'POST',
@@ -50,7 +65,7 @@ describe('API', () => {
     const data = await response.json()
     
     expect(response.status).toBe(201)
-    expect(data.id).toBe('1')
+    expect(data.id).toBe('123e4567-e89b-12d3-a456-426614174000')
   })
 
   it('should handle habit creation with validation errors', async () => {
@@ -72,10 +87,17 @@ describe('API', () => {
   })
 
   it('should handle event creation correctly', async () => {
-    const mockEvent = { id: '1' }
-    const { prisma } = await import('@/lib/db')
-    prisma.habit.findUnique = vi.fn().mockResolvedValue({ id: '1' })
-    prisma.event.create = vi.fn().mockResolvedValue(mockEvent)
+    const mockEvent = { 
+      id: '123e4567-e89b-12d3-a456-426614174001',
+      habitId: '123e4567-e89b-12d3-a456-426614174000',
+      value: 1,
+      note: null,
+      tsClient: new Date(),
+      tsServer: new Date(),
+      meta: {}
+    }
+    mockPrismaClient.habit.findUnique.mockResolvedValue({ id: '123e4567-e89b-12d3-a456-426614174000', name: 'Test', type: 'build', target: 1, period: 'day', unit: 'count', unitLabel: null, emoji: null, active: true, createdAt: new Date(), updatedAt: new Date() })
+    mockPrismaClient.event.create.mockResolvedValue(mockEvent)
     
     const request = new Request('http://localhost:3000/api/habits/1/events', {
       method: 'POST',
@@ -84,16 +106,15 @@ describe('API', () => {
       })
     })
     
-    const response = await createEvent(request, { params: { id: '1' } })
+    const response = await createEvent(request, { params: { id: '123e4567-e89b-12d3-a456-426614174000' } })
     const data = await response.json()
     
     expect(response.status).toBe(201)
-    expect(data.eventId).toBe('1')
+    expect(data.eventId).toBe('123e4567-e89b-12d3-a456-426614174001')
   })
 
   it('should handle event creation with validation errors', async () => {
-    const { prisma } = await import('@/lib/db')
-    prisma.habit.findUnique = vi.fn().mockResolvedValue({ id: '1' })
+    mockPrismaClient.habit.findUnique.mockResolvedValue({ id: '123e4567-e89b-12d3-a456-426614174000', name: 'Test', type: 'build', target: 1, period: 'day', unit: 'count', unitLabel: null, emoji: null, active: true, createdAt: new Date(), updatedAt: new Date() })
     
     const request = new Request('http://localhost:3000/api/habits/1/events', {
       method: 'POST',
@@ -102,7 +123,7 @@ describe('API', () => {
       })
     })
     
-    const response = await createEvent(request, { params: { id: '1' } })
+    const response = await createEvent(request, { params: { id: '123e4567-e89b-12d3-a456-426614174000' } })
     const data = await response.json()
     
     expect(response.status).toBe(400)
@@ -110,8 +131,7 @@ describe('API', () => {
   })
 
   it('should handle event creation for non-existent habit', async () => {
-    const { prisma } = await import('@/lib/db')
-    prisma.habit.findUnique = vi.fn().mockResolvedValue(null) // Habit not found
+    mockPrismaClient.habit.findUnique.mockResolvedValue(null) // Habit not found
     
     const request = new Request('http://localhost:3000/api/habits/999/events', {
       method: 'POST',
@@ -128,28 +148,26 @@ describe('API', () => {
   })
 
   it('should handle event voiding correctly', async () => {
-    const { prisma } = await import('@/lib/db')
-    prisma.event.findUnique = vi.fn().mockResolvedValue({ id: '1', habitId: '1' })
-    prisma.event.findFirst = vi.fn().mockResolvedValue(null)
-    prisma.event.create = vi.fn().mockResolvedValue({ id: '2' })
+    mockPrismaClient.event.findUnique.mockResolvedValue({ id: '123e4567-e89b-12d3-a456-426614174001', habitId: '123e4567-e89b-12d3-a456-426614174000', value: 1, note: null, tsClient: new Date(), tsServer: new Date(), meta: {} })
+    mockPrismaClient.event.findFirst.mockResolvedValue(null)
+    mockPrismaClient.event.create.mockResolvedValue({ id: '123e4567-e89b-12d3-a456-426614174002', habitId: '123e4567-e89b-12d3-a456-426614174000', value: 0, note: null, tsClient: new Date(), tsServer: new Date(), meta: { kind: 'void', void_of: '123e4567-e89b-12d3-a456-426614174001', reason: 'mistap' } })
     
-    const request = new Request('http://localhost:3000/api/events/1/void', {
+    const request = new Request('http://localhost:3000/api/events/123e4567-e89b-12d3-a456-426614174001/void', {
       method: 'POST',
       body: JSON.stringify({
         reason: 'mistap'
       })
     })
     
-    const response = await voidEvent(request, { params: { id: '1' } })
+    const response = await voidEvent(request, { params: { id: '123e4567-e89b-12d3-a456-426614174000' } })
     const data = await response.json()
     
     expect(response.status).toBe(201)
-    expect(data.voidEventId).toBe('2')
+    expect(data.voidEventId).toBe('123e4567-e89b-12d3-a456-426614174002')
   })
 
   it('should handle event voiding for non-existent event', async () => {
-    const { prisma } = await import('@/lib/db')
-    prisma.event.findUnique = vi.fn().mockResolvedValue(null) // Event not found
+    mockPrismaClient.event.findUnique.mockResolvedValue(null) // Event not found
     
     const request = new Request('http://localhost:3000/api/events/999/void', {
       method: 'POST',
@@ -166,18 +184,17 @@ describe('API', () => {
   })
 
   it('should handle event voiding for already voided event', async () => {
-    const { prisma } = await import('@/lib/db')
-    prisma.event.findUnique = vi.fn().mockResolvedValue({ id: '1', habitId: '1' })
-    prisma.event.findFirst = vi.fn().mockResolvedValue({ id: '2' }) // Already voided
+    mockPrismaClient.event.findUnique.mockResolvedValue({ id: '123e4567-e89b-12d3-a456-426614174000', habitId: '123e4567-e89b-12d3-a456-426614174000', value: 1, note: null, tsClient: new Date(), tsServer: new Date(), meta: {} })
+    mockPrismaClient.event.findFirst.mockResolvedValue({ id: '123e4567-e89b-12d3-a456-426614174002', habitId: '123e4567-e89b-12d3-a456-426614174000', value: 0, note: null, tsClient: new Date(), tsServer: new Date(), meta: { kind: 'void', void_of: '123e4567-e89b-12d3-a456-426614174001', reason: 'mistap' } }) // Already voided
     
-    const request = new Request('http://localhost:3000/api/events/1/void', {
+    const request = new Request('http://localhost:3000/api/events/123e4567-e89b-12d3-a456-426614174001/void', {
       method: 'POST',
       body: JSON.stringify({
         reason: 'mistap'
       })
     })
     
-    const response = await voidEvent(request, { params: { id: '1' } })
+    const response = await voidEvent(request, { params: { id: '123e4567-e89b-12d3-a456-426614174000' } })
     const data = await response.json()
     
     expect(response.status).toBe(409)
@@ -185,9 +202,8 @@ describe('API', () => {
   })
 
   it('should handle export correctly', async () => {
-    const { prisma } = await import('@/lib/db')
-    prisma.habit.findMany = vi.fn().mockResolvedValue([{ id: '1', name: 'Test Habit' }])
-    prisma.event.findMany = vi.fn().mockResolvedValue([{ id: '1', habitId: '1', value: 1 }])
+    mockPrismaClient.habit.findMany.mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-426614174000', name: 'Test Habit', type: 'build', target: 1, period: 'day', unit: 'count', unitLabel: null, emoji: null, active: true, createdAt: new Date(), updatedAt: new Date() }])
+    mockPrismaClient.event.findMany.mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-426614174000', habitId: '123e4567-e89b-12d3-a456-426614174000', value: 1, note: null, tsClient: new Date(), tsServer: new Date(), meta: {} }])
     
     const response: any = await exportData()
     
@@ -197,18 +213,17 @@ describe('API', () => {
 
   it('should handle habit listing correctly', async () => {
     const mockHabits = [
-      { id: '1', name: 'Test Habit 1', type: 'build', target: 1, period: 'day', unit: 'count', unitLabel: null, active: true },
-      { id: '2', name: 'Test Habit 2', type: 'break', target: 0, period: 'day', unit: 'count', unitLabel: null, active: true }
+      { id: '123e4567-e89b-12d3-a456-426614174000', name: 'Test Habit 1', type: 'build', target: 1, period: 'day', unit: 'count', unitLabel: null, emoji: null, active: true, createdAt: new Date(), updatedAt: new Date() },
+      { id: '223e4567-e89b-12d3-a456-426614174000', name: 'Test Habit 2', type: 'break', target: 0, period: 'day', unit: 'count', unitLabel: null, emoji: null, active: true, createdAt: new Date(), updatedAt: new Date() }
     ]
-    const { prisma } = await import('@/lib/db')
-    prisma.habit.findMany = vi.fn().mockResolvedValue(mockHabits)
+    mockPrismaClient.habit.findMany.mockResolvedValue(mockHabits)
     
     const response = await getHabits()
     const data = await response.json()
     
     expect(response.status).toBe(200)
     expect(data).toHaveLength(2)
-    expect(data[0].id).toBe('1')
-    expect(data[1].id).toBe('2')
+    expect(data[0].id).toBe('123e4567-e89b-12d3-a456-426614174000')
+    expect(data[1].id).toBe('223e4567-e89b-12d3-a456-426614174000')
   })
-}))
+})

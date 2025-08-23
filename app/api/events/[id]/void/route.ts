@@ -49,10 +49,11 @@ export async function POST(
     })
     
     if (existingVoidEvent) {
-      // Return the existing void event ID
-      const response = { voidEventId: existingVoidEvent.id }
-      VoidEventResponse.parse(response)
-      return NextResponse.json(response, { status: 409 }) // 409 Conflict
+      // Return conflict error
+      return NextResponse.json(
+        { error: { message: 'Event already voided', voidEventId: existingVoidEvent.id } },
+        { status: 409 }
+      ) // 409 Conflict
     }
     
     // Create a void control event
