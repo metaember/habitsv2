@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'react-hot-toast'
+import EmojiPicker from '@/components/EmojiPicker'
 
 interface NewHabitFormProps {
   onSuccess: () => void
@@ -91,13 +92,10 @@ export default function NewHabitForm({ onSuccess, onCancel }: NewHabitFormProps)
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Emoji
               </label>
-              <input
-                type="text"
+              <EmojiPicker
                 value={emoji}
-                onChange={(e) => setEmoji(e.target.value)}
-                placeholder="💧"
-                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-xl"
-                maxLength={2}
+                onChange={setEmoji}
+                placeholder="⭐"
               />
             </div>
           </div>
