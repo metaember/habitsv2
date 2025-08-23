@@ -22,10 +22,13 @@ export default function RootLayout({
         </main>
         <Navigation />
         <Toaster 
-          position="bottom-center"
+          position="top-right"
           toastOptions={{
             className: 'bg-white shadow-lg border border-slate-200 text-slate-900 rounded-xl',
             duration: 3000,
+            style: {
+              marginTop: '1rem',
+            },
           }}
         />
       </body>
