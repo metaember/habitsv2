@@ -1,11 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'react-hot-toast'
 
 interface NewHabitFormProps {
@@ -60,134 +55,196 @@ export default function NewHabitForm({ onSuccess, onCancel }: NewHabitFormProps)
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>New Habit</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl transform transition-all">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 pb-4">
+          <h3 className="text-xl font-bold text-slate-900">Create New Habit</h3>
+          <button
+            onClick={onCancel}
+            className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-5">
+          {/* Name and Emoji */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Habit Name
+              </label>
+              <input
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Drink water"
+                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
-            
-            <div>
-              <Label htmlFor="emoji">Emoji (optional)</Label>
-              <Input
-                id="emoji"
+            <div className="w-20">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Emoji
+              </label>
+              <input
+                type="text"
                 value={emoji}
                 onChange={(e) => setEmoji(e.target.value)}
-                placeholder="e.g., 💧"
+                placeholder="💧"
+                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-xl"
+                maxLength={2}
               />
             </div>
-            
-            <div>
-              <Label>Type</Label>
-              <div className="flex gap-2 mt-1">
-                <Button
-                  type="button"
-                  variant={type === 'build' ? 'default' : 'outline'}
-                  onClick={() => setType('build')}
-                  className="flex-1"
-                >
-                  Build
-                </Button>
-                <Button
-                  type="button"
-                  variant={type === 'break' ? 'default' : 'outline'}
-                  onClick={() => setType('break')}
-                  className="flex-1"
-                >
-                  Break
-                </Button>
-              </div>
+          </div>
+          
+          {/* Type Selection */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Habit Type
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setType('build')}
+                className={`p-4 rounded-xl font-medium transition-all ${
+                  type === 'build'
+                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                  <span>Build</span>
+                </div>
+                <p className="text-xs mt-1 opacity-75">Create positive habits</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setType('break')}
+                className={`p-4 rounded-xl font-medium transition-all ${
+                  type === 'break'
+                    ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/25'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                  <span>Break</span>
+                </div>
+                <p className="text-xs mt-1 opacity-75">Stop negative habits</p>
+              </button>
             </div>
-            
+          </div>
+          
+          {/* Target and Period */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="target">Target</Label>
-              <Input
-                id="target"
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Target
+              </label>
+              <input
                 type="number"
                 min="1"
                 value={target}
                 onChange={(e) => setTarget(Number(e.target.value))}
+                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
-            
             <div>
-              <Label htmlFor="period">Period</Label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Period
+              </label>
               <select
-                id="period"
                 value={period}
                 onChange={(e) => setPeriod(e.target.value as any)}
-                className="w-full p-2 border rounded"
+                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="day">Day</option>
-                <option value="week">Week</option>
-                <option value="month">Month</option>
+                <option value="day">Daily</option>
+                <option value="week">Weekly</option>
+                <option value="month">Monthly</option>
                 <option value="custom">Custom</option>
               </select>
             </div>
-            
-            {type === 'build' && (
-              <>
+          </div>
+          
+          {/* Unit Selection for Build Habits */}
+          {type === 'build' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Unit
+                </label>
+                <select
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value as any)}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="count">Count</option>
+                  <option value="minutes">Minutes</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              
+              {unit === 'custom' && (
                 <div>
-                  <Label htmlFor="unit">Unit</Label>
-                  <select
-                    id="unit"
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value as any)}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="count">Count</option>
-                    <option value="minutes">Minutes</option>
-                    <option value="custom">Custom</option>
-                  </select>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Custom Unit Label
+                  </label>
+                  <input
+                    type="text"
+                    value={unitLabel}
+                    onChange={(e) => setUnitLabel(e.target.value)}
+                    placeholder="e.g., glasses, pages, miles"
+                    className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
                 </div>
-                
-                {unit !== 'count' && (
-                  <div>
-                    <Label htmlFor="unitLabel">Unit Label</Label>
-                    <Input
-                      id="unitLabel"
-                      value={unitLabel}
-                      onChange={(e) => setUnitLabel(e.target.value)}
-                      placeholder="e.g., glasses, pages"
-                    />
-                  </div>
-                )}
-              </>
-            )}
-            
-            <div>
-              <Label htmlFor="note">Note (optional)</Label>
-              <Textarea
-                id="note"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Add a note..."
-              />
-            </div>
-            
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
-                Cancel
-              </Button>
-              <Button type="submit" className="flex-1" disabled={creating}>
-                {creating ? 'Creating...' : 'Create Habit'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+              )}
+            </>
+          )}
+          
+          {/* Note */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Note (optional)
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add any additional notes..."
+              className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows={3}
+            />
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 py-3 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-all duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={creating}
+              className="flex-1 py-3 px-6 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating ? 'Creating...' : 'Create Habit'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
