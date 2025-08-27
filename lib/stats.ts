@@ -23,9 +23,10 @@ export function calculateBuildStreak(
   tz: string,
   weekStart: 'MON' | 'SUN' = 'MON'
 ): number {
-  if (events.length === 0) return 0
+  const effectiveEvents = filterEffectiveEventsInline(events)
+  if (effectiveEvents.length === 0) return 0
   
-  const buckets = groupEventsByPeriod(events, habit.period, tz, weekStart)
+  const buckets = groupEventsByPeriod(effectiveEvents, habit.period, tz, weekStart)
   
   // Mark successful periods
   buckets.forEach(bucket => {
@@ -39,15 +40,59 @@ export function calculateBuildStreak(
   // Filter out current period (not yet complete)
   const completedBuckets = buckets.filter(b => b.end.getTime() <= now.getTime())
   
-  if (completedBuckets.length === 0) return 0
+  // Remove this early return - we'll check after considering current period
+  // if (completedBuckets.length === 0) return 0
   
-  // Count consecutive successes from most recent
+  
+  // Count consecutive successes from most recent, checking for gaps
   let streak = 0
-  for (let i = completedBuckets.length - 1; i >= 0; i--) {
-    if (completedBuckets[i].success) {
-      streak++
-    } else {
+  
+  // Check if current period meets the target - if so, include it in streak calculation
+  const currentPeriodBucket = buckets.find(b => 
+    b.start.getTime() === currentPeriod.start.getTime() && 
+    b.end.getTime() === currentPeriod.end.getTime()
+  )
+  
+  const includeCurrentPeriod = currentPeriodBucket && currentPeriodBucket.success
+  
+  // Create a list of all buckets to consider (completed + current if successful)
+  const bucketsToConsider = includeCurrentPeriod 
+    ? [...completedBuckets, currentPeriodBucket!]
+    : completedBuckets
+  
+  // Sort by start date descending
+  bucketsToConsider.sort((a, b) => b.start.getTime() - a.start.getTime())
+  
+  if (bucketsToConsider.length === 0) return 0
+  
+  // Start checking from the most recent period
+  const startDate = includeCurrentPeriod ? currentPeriod.start : new Date(currentPeriod.start.getTime() - 1)
+  let checkingPeriod = periodRange(startDate, habit.period, weekStart, tz)
+  let bucketIndex = 0
+  
+  while (bucketIndex < bucketsToConsider.length) {
+    const bucket = bucketsToConsider[bucketIndex]
+    
+    // Check if this bucket matches the period we're checking
+    if (bucket.start.getTime() === checkingPeriod.start.getTime()) {
+      if (bucket.success) {
+        streak++
+        bucketIndex++
+        
+        // Move to previous period
+        const prevDate = new Date(checkingPeriod.start)
+        prevDate.setMilliseconds(prevDate.getMilliseconds() - 1)
+        checkingPeriod = periodRange(prevDate, habit.period, weekStart, tz)
+      } else {
+        // Failed period breaks the streak
+        break
+      }
+    } else if (bucket.start.getTime() > checkingPeriod.start.getTime()) {
+      // We have a gap - no bucket for the period we're checking
       break
+    } else {
+      // This bucket is older than what we're checking, move to next bucket
+      bucketIndex++
     }
   }
   
@@ -171,6 +216,32 @@ export function calculateAdherenceRate(
 /**
  * Get comprehensive stats for a habit
  */
+// Helper to filter out voided events inline
+function filterEffectiveEventsInline(events: Event[]): Event[] {
+  // First, collect all voided event IDs
+  const voidedIds = new Set<string>()
+  events.forEach(event => {
+    if (event.meta && typeof event.meta === 'object' && 'void_of' in event.meta) {
+      voidedIds.add(event.meta.void_of as string)
+    }
+  })
+
+  // Filter out events that are either voided or are control events
+  return events.filter(event => {
+    // Exclude control events where meta.kind === 'void'
+    if (event.meta && typeof event.meta === 'object' && 'kind' in event.meta && event.meta.kind === 'void') {
+      return false
+    }
+    
+    // Exclude events whose id is in voidedIds
+    if (voidedIds.has(event.id)) {
+      return false
+    }
+    
+    return true
+  })
+}
+
 export function getHabitStats(
   habit: Habit,
   events: Event[],
@@ -179,11 +250,12 @@ export function getHabitStats(
 ): HabitStats {
   // Ensure events is an array
   const eventsArray = Array.isArray(events) ? events : []
+  const effectiveEvents = filterEffectiveEventsInline(eventsArray)
   
   const currentPeriod = getCurrentPeriod(habit.period, tz, weekStart)
   
   // Get current period events
-  const currentPeriodEvents = eventsArray.filter(e => {
+  const currentPeriodEvents = effectiveEvents.filter(e => {
     const eventTime = new Date(e.tsClient).getTime()
     return eventTime >= currentPeriod.start.getTime() && eventTime < currentPeriod.end.getTime()
   })

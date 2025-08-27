@@ -1,13 +1,25 @@
 import { describe, it, expect } from 'vitest'
 import { calculateTimeSinceLastFailure, isOnPace } from '@/lib/stats'
+import type { Event, Source } from '@prisma/client'
 
 describe('stats', () => {
   it('should calculate time since last failure correctly', () => {
     const now = new Date()
     const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
     
-    const events = [
-      { tsClient: threeDaysAgo.toISOString(), value: 1 }
+    const events: Event[] = [
+      { 
+        id: '1',
+        habitId: 'habit-1',
+        userId: 'user-1',
+        tsClient: threeDaysAgo,
+        tsServer: threeDaysAgo,
+        value: 1,
+        note: null,
+        source: 'ui' as Source,
+        clientId: null,
+        meta: {}
+      }
     ]
     
     const result = calculateTimeSinceLastFailure(events)

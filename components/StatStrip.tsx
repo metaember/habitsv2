@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Habit, Event } from '@prisma/client'
 import { getHabitStats } from '@/lib/stats'
+import { habitEvents } from '@/lib/events'
+// import { filterEffectiveEvents } from '@/lib/event-utils'
 
 export default function StatStrip() {
   const [habits, setHabits] = useState<Habit[]>([])
@@ -11,6 +13,17 @@ export default function StatStrip() {
 
   useEffect(() => {
     fetchData()
+    
+    // Subscribe to habit events
+    const handleUpdate = () => {
+      fetchData()
+    }
+    
+    habitEvents.on('habitUpdated', handleUpdate)
+    
+    return () => {
+      habitEvents.off('habitUpdated', handleUpdate)
+    }
   }, [])
 
   const fetchData = async () => {
@@ -57,6 +70,7 @@ export default function StatStrip() {
 
     habits.forEach(habit => {
       const habitEvents = events[habit.id] || []
+      // const effectiveEvents = filterEffectiveEvents(habitEvents)
       const stats = getHabitStats(habit, habitEvents, 'America/New_York', 'MON')
       
       totalHabits++

@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react'
 import LogSheet from '@/components/LogSheet'
 import { toast } from 'react-hot-toast'
 import { getHabitStats } from '@/lib/stats'
+import { habitEvents } from '@/lib/events'
+// import { filterEffectiveEvents } from '@/lib/event-utils'
 import { getCurrentPeriod } from '@/lib/period'
 import Link from 'next/link'
 
@@ -34,6 +36,7 @@ export default function HabitCard({ habit }: HabitCardProps) {
   }
 
   // Calculate stats
+  // const effectiveEvents = filterEffectiveEvents(events)
   const stats = getHabitStats(habit, events, 'America/New_York', 'MON')
   const currentPeriod = getCurrentPeriod(habit.period, 'America/New_York', 'MON')
   
@@ -62,6 +65,7 @@ export default function HabitCard({ habit }: HabitCardProps) {
       
       await fetchEvents()
       toast.success('Logged successfully!')
+      habitEvents.emit('habitUpdated')
     } catch (error) {
       console.error('Failed to log event:', error)
       toast.error('Failed to log event')
@@ -71,6 +75,7 @@ export default function HabitCard({ habit }: HabitCardProps) {
   const handleLogSuccess = () => {
     setShowLogSheet(false)
     fetchEvents()
+    habitEvents.emit('habitUpdated')
   }
 
   return (

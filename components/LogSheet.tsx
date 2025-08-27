@@ -34,35 +34,8 @@ export default function LogSheet({ habit, onClose, onLog }: LogSheetProps) {
         onLog()
         onClose()
         
-        // Show success message with undo option
-        toast.success('Event logged successfully!', {
-          duration: 5000,
-          action: {
-            label: 'Undo',
-            onClick: async () => {
-              try {
-                const voidRes = await fetch(`/api/events/${data.eventId}/void`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    reason: 'mistap'
-                  }),
-                })
-                
-                if (voidRes.ok) {
-                  toast.success('Event undone!')
-                  onLog() // Refresh the events
-                } else {
-                  toast.error('Failed to undo event')
-                }
-              } catch (error) {
-                toast.error('Failed to undo event')
-              }
-            }
-          }
-        })
+        // Show success message
+        toast.success('Event logged successfully!')
       } else {
         toast.error('Failed to log event')
       }
