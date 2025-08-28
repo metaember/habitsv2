@@ -4,6 +4,9 @@ import { prisma } from '@/lib/db'
 import { Readable } from 'stream'
 import { pipeline } from 'stream/promises'
 
+// Force dynamic rendering - prevent static generation at build time
+export const dynamic = 'force-dynamic'
+
 // GET /api/export.jsonl - Export habits and events in NDJSON format
 export async function GET() {
   try {

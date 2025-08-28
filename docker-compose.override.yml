@@ -1,0 +1,20 @@
+# Local development Docker Compose overrides
+# This file is automatically used when running `docker compose up` locally
+
+services:
+  app:
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: development
+      BETTER_AUTH_URL: http://localhost:3001
+    volumes:
+      # Mount source code for hot reload (excluding node_modules)
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: sh -c "npx prisma migrate deploy && npm run dev"
+
+  db:
+    ports:
+      - "5432:5432"

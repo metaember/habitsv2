@@ -1,0 +1,32 @@
+# Production Docker Compose overrides
+# Use with: docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  app:
+    build:
+      args:
+        BETTER_AUTH_URL: https://${DOMAIN}
+        DOMAIN: https://${DOMAIN}
+    labels:
+      - "traefik.enable=true"
+      - "my_traefik.proxy_network=public"
+      - "traefik.http.routers.habits.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.habits.entrypoints=websecure"
+      - "traefik.http.routers.habits.tls.certresolver=cloudflare"
+      - "traefik.http.services.habits.loadbalancer.server.port=3000"
+    networks:
+      - traefik-public
+      - internal
+    environment:
+      BETTER_AUTH_URL: https://${DOMAIN}
+
+  db:
+    networks:
+      - internal
+    # No ports exposed in production
+
+networks:
+  traefik-public:
+    external: true
+  internal:
+    external: false
