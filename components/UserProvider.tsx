@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, ReactNode } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { UserContext, UserContextType, useSession } from '@/lib/auth-client'
 
 interface UserProviderProps {
@@ -8,13 +9,22 @@ interface UserProviderProps {
 }
 
 export default function UserProvider({ children }: UserProviderProps) {
-  const { data: session } = useSession()
+  const { data: session, isPending } = useSession()
+  const router = useRouter()
+  const pathname = usePathname()
   const [activeUserId, setActiveUserId] = useState<string | null>(null)
   const [availableUsers, setAvailableUsers] = useState<Array<{
     id: string
     name: string
     color?: string
   }>>([])
+
+  // Handle authentication redirects
+  useEffect(() => {
+    if (!isPending && !session && pathname !== '/auth') {
+      router.push('/auth')
+    }
+  }, [isPending, session, pathname, router])
 
   // Set active user to current session user by default
   useEffect(() => {
@@ -59,6 +69,23 @@ export default function UserProvider({ children }: UserProviderProps) {
     activeUserId,
     switchUser,
     availableUsers
+  }
+
+  // Show loading state while checking authentication
+  if (isPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render children if not authenticated (redirect will happen)
+  if (!session && pathname !== '/auth') {
+    return null
   }
 
   return (

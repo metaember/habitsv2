@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn, signUp } from '@/lib/auth-client'
+import { signIn, signUp, useSession } from '@/lib/auth-client'
 
 export default function AuthPage() {
   const [isSignIn, setIsSignIn] = useState(true)
@@ -12,6 +12,14 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const { data: session } = useSession()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (session?.user) {
+      router.push('/today')
+    }
+  }, [session, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
