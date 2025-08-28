@@ -1,7 +1,7 @@
 'use client'
 
+import React, { useEffect, useState } from 'react'
 import { Habit, Event } from '@prisma/client'
-import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
 import { getHabitStats } from '@/lib/stats'
 import { getCurrentPeriod } from '@/lib/period'

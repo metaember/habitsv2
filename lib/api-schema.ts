@@ -19,6 +19,14 @@ export const HabitListResponse = z.array(z.object({
   unit: z.enum(['count', 'minutes', 'custom']),
   unitLabel: z.string().nullable(),
   active: z.boolean(),
+  visibility: z.enum(['private', 'household', 'group', 'public_link']).optional(),
+  templateKey: z.string().nullable().optional(),
+  ownerUserId: z.string().uuid().nullable().optional(),
+  owner: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    color: z.string().nullable(),
+  }).nullable().optional(),
 }))
 
 export const HabitCreateResponse = z.object({

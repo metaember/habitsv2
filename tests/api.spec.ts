@@ -5,11 +5,25 @@ import { GET as getEvents, POST as createEvent } from '@/app/api/habits/[id]/eve
 import { POST as voidEvent } from '@/app/api/events/[id]/void/route'
 import { GET as exportData } from '@/app/api/export.jsonl/route'
 
+// Mock auth user
+const mockUser = {
+  id: 'user-123',
+  name: 'Test User',
+  email: 'test@example.com'
+}
+
+// Mock auth-server
+vi.mock('@/lib/auth-server', () => ({
+  requireAuth: vi.fn(() => Promise.resolve(mockUser)),
+  getAuthenticatedUser: vi.fn(() => Promise.resolve(mockUser))
+}))
+
 // Mock Prisma client
 const mockPrismaClient = {
   habit: {
     findMany: vi.fn(),
     create: vi.fn(),
+    findFirst: vi.fn(),
     findUnique: vi.fn(),
   },
   event: {
@@ -23,7 +37,7 @@ const mockPrismaClient = {
 }
 
 vi.mock('@/lib/db', () => ({
-  getPrismaClient: vi.fn(() => mockPrismaClient)
+  getPrismaClient: vi.fn(() => Promise.resolve(mockPrismaClient))
 }))
 
 describe('API', () => {
@@ -46,6 +60,9 @@ describe('API', () => {
       unitLabel: null,
       emoji: null,
       active: true,
+      ownerUserId: 'user-123',
+      visibility: 'private',
+      templateKey: null,
       createdAt: new Date(),
       updatedAt: new Date()
     }
@@ -96,7 +113,20 @@ describe('API', () => {
       tsServer: new Date(),
       meta: {}
     }
-    mockPrismaClient.habit.findUnique.mockResolvedValue({ id: '123e4567-e89b-12d3-a456-426614174000', name: 'Test', type: 'build', target: 1, period: 'day', unit: 'count', unitLabel: null, emoji: null, active: true, createdAt: new Date(), updatedAt: new Date() })
+    mockPrismaClient.habit.findFirst.mockResolvedValue({ 
+      id: '123e4567-e89b-12d3-a456-426614174000', 
+      name: 'Test', 
+      type: 'build', 
+      target: 1, 
+      period: 'day', 
+      unit: 'count', 
+      unitLabel: null, 
+      emoji: null, 
+      active: true, 
+      ownerUserId: 'user-123',
+      createdAt: new Date(), 
+      updatedAt: new Date() 
+    })
     mockPrismaClient.event.create.mockResolvedValue(mockEvent)
     
     const request = new Request('http://localhost:3000/api/habits/1/events', {
@@ -114,7 +144,20 @@ describe('API', () => {
   })
 
   it('should handle event creation with validation errors', async () => {
-    mockPrismaClient.habit.findUnique.mockResolvedValue({ id: '123e4567-e89b-12d3-a456-426614174000', name: 'Test', type: 'build', target: 1, period: 'day', unit: 'count', unitLabel: null, emoji: null, active: true, createdAt: new Date(), updatedAt: new Date() })
+    mockPrismaClient.habit.findFirst.mockResolvedValue({ 
+      id: '123e4567-e89b-12d3-a456-426614174000', 
+      name: 'Test', 
+      type: 'build', 
+      target: 1, 
+      period: 'day', 
+      unit: 'count', 
+      unitLabel: null, 
+      emoji: null, 
+      active: true, 
+      ownerUserId: 'user-123',
+      createdAt: new Date(), 
+      updatedAt: new Date() 
+    })
     
     const request = new Request('http://localhost:3000/api/habits/1/events', {
       method: 'POST',
@@ -131,7 +174,7 @@ describe('API', () => {
   })
 
   it('should handle event creation for non-existent habit', async () => {
-    mockPrismaClient.habit.findUnique.mockResolvedValue(null) // Habit not found
+    mockPrismaClient.habit.findFirst.mockResolvedValue(null) // Habit not found
     
     const request = new Request('http://localhost:3000/api/habits/999/events', {
       method: 'POST',
