@@ -12,7 +12,6 @@ export async function GET() {
     prisma = await getPrismaClient()
     
     const habits = await prisma.habit.findMany({
-      where: { active: true },
       select: {
         id: true,
         name: true,

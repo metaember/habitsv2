@@ -6,6 +6,7 @@ import HabitCard from '@/components/HabitCard'
 import StatStrip from '@/components/StatStrip'
 import { Button } from '@/components/ui/button'
 import NewHabitForm from '@/components/NewHabitForm'
+import Link from 'next/link'
 
 export default function TodayPage() {
   const [habits, setHabits] = useState<Habit[]>([])
@@ -25,7 +26,9 @@ export default function TodayPage() {
         console.error('API error:', data)
         setHabits([])
       } else if (Array.isArray(data)) {
-        setHabits(data)
+        // Filter to only show active habits
+        const activeHabits = data.filter((h: Habit) => h.active)
+        setHabits(activeHabits)
       } else {
         console.error('Unexpected data format:', data)
         setHabits([])
@@ -62,14 +65,25 @@ export default function TodayPage() {
               })}
             </p>
           </div>
-          <button
-            onClick={() => setShowNewHabitForm(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg shadow-blue-500/25 transition-all duration-200 hover:scale-105"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/habits"
+              className="bg-slate-200 hover:bg-slate-300 text-slate-700 p-3 rounded-full transition-all duration-200 hover:scale-105"
+              title="Manage habits"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </Link>
+            <button
+              onClick={() => setShowNewHabitForm(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full shadow-lg shadow-blue-500/25 transition-all duration-200 hover:scale-105"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
         </div>
         
         <StatStrip />
