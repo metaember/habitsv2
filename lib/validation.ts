@@ -10,6 +10,8 @@ export const HabitCreateDto = z.object({
   scheduleDowMask: z.number().int().min(0).max(127).optional(),
   unit: z.enum(['count', 'minutes', 'custom']).default('count'),
   unitLabel: z.string().min(1).max(12).optional(),
+  visibility: z.enum(['private', 'household', 'group', 'public_link']).default('private'),
+  templateKey: z.string().min(1).max(50).optional(),
 })
 
 export type HabitCreateInput = z.infer<typeof HabitCreateDto>

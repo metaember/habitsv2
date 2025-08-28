@@ -247,13 +247,14 @@ stats cache endpoints (v4) • groups/challenges CRUD (v6)
 
 *Out of scope (v1):* Multi-user; webhook; pullers; stats drawer beyond basics.
 
-### v2 — Household multi-user & merged displays
+### v2 — multi-user, Household multi-user & merged displays
 
 #### Auth
 
 - [Better Auth](https://www.better-auth.com/) with email magic links or passkeys.
 - Store sessions in Postgres via Prisma adapter.
 - Add `ownerUserId` on habits; require `userId` on new events; backfill legacy events to a default user.
+- Supports usersd and households which can combine multiple users
 
 #### UI
 

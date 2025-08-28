@@ -3,6 +3,8 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Toaster } from 'react-hot-toast'
 import Navigation from '@/components/Navigation'
+import TopNavigation from '@/components/TopNavigation'
+import UserProvider from '@/components/UserProvider'
 
 export const metadata: Metadata = {
   title: 'Habit Tracker',
@@ -17,10 +19,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className="h-full bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900 antialiased pb-20">
-        <main className="min-h-full">
-          {children}
-        </main>
-        <Navigation />
+        <UserProvider>
+          <TopNavigation />
+          <main className="min-h-full pt-4">
+            {children}
+          </main>
+          <Navigation />
+        </UserProvider>
         <Toaster 
           position="top-right"
           toastOptions={{

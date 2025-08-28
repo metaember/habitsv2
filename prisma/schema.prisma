@@ -1,3 +1,4 @@
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -41,14 +42,24 @@ enum Source {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  color     String?
-  timezone  String   @default("America/New_York")
-  kioskMode Boolean  @default(false)
-  kioskPin  String?
-  Habits    Habit[]
-  Events    Event[]
+  id            String    @id @default(uuid())
+  name          String
+  color         String?
+  timezone      String    @default("America/New_York")
+  kioskMode     Boolean   @default(false)
+  kioskPin      String?
+  Habits        Habit[]
+  Events        Event[]
+  email         String
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  sessions      Session[]
+  accounts      Account[]
+
+  @@unique([email])
+  @@map("user")
 }
 
 model Habit {
@@ -61,7 +72,7 @@ model Habit {
   target          Float
   period          Period
   scheduleDowMask Int?
-  unit            Unit      @default(count)
+  unit            Unit       @default(count)
   unitLabel       String?
   windowStart     String?
   windowEnd       String?
@@ -72,18 +83,64 @@ model Habit {
 }
 
 model Event {
-  id        String  @id @default(uuid())
-  habitId   String
-  habit     Habit   @relation(fields: [habitId], references: [id])
-  userId    String?
-  user      User?   @relation(fields: [userId], references: [id])
-  tsClient  DateTime
-  tsServer  DateTime @default(now())
-  value     Float    @default(1)
-  note      String?
-  source    Source   @default(ui)
-  clientId  String?
-  meta      Json?
+  id       String   @id @default(uuid())
+  habitId  String
+  habit    Habit    @relation(fields: [habitId], references: [id])
+  userId   String?
+  user     User?    @relation(fields: [userId], references: [id])
+  tsClient DateTime
+  tsServer DateTime @default(now())
+  value    Float    @default(1)
+  note     String?
+  source   Source   @default(ui)
+  clientId String?
+  meta     Json?
+
   @@index([habitId, tsServer])
   @@index([userId, tsServer])
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
 }

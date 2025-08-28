@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { requireAuth } from '@/lib/auth-server'
 import { filterEffectiveEvents } from '@/lib/event-utils'
 import type { Habit } from '@prisma/client'
 
@@ -29,6 +30,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const user = await requireAuth()
+    
     // Parse month to get date range
     const [year, monthNum] = month.split('-').map(Number)
     const startOfMonth = new Date(year, monthNum - 1, 1)
@@ -45,11 +48,24 @@ export async function GET(request: NextRequest) {
     const daysToAdd = endDayOfWeek === 0 ? 0 : 7 - endDayOfWeek
     endDate.setDate(endDate.getDate() + daysToAdd)
 
-    // Get habits (filtered by habitId if provided)
+    // Get habits (filtered by habitId if provided) - include household habits
     const habits = await prisma.habit.findMany({
       where: {
         active: true,
-        ...(habitId ? { id: habitId } : {})
+        ...(habitId ? { id: habitId } : {}),
+        OR: [
+          { ownerUserId: user.id }, // User's own habits
+          { visibility: 'household' }, // All household habits
+        ],
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          }
+        }
       }
     })
 
@@ -60,14 +76,31 @@ export async function GET(request: NextRequest) {
     // Get events for the date range
     const events = await prisma.event.findMany({
       where: {
-        habitId: habitId ? habitId : { in: habits.map((h: Habit) => h.id) },
+        habitId: habitId ? habitId : { in: habits.map((h: any) => h.id) },
         tsClient: {
           gte: startDate,
           lte: endDate
         }
       },
       include: {
-        habit: true
+        habit: {
+          include: {
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              }
+            }
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          }
+        }
       }
     })
 
@@ -159,6 +192,14 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Calendar API error:', error)
+    
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

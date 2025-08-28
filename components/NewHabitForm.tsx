@@ -17,6 +17,8 @@ export default function NewHabitForm({ onSuccess, onCancel }: NewHabitFormProps)
   const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'custom'>('day')
   const [unit, setUnit] = useState<'count' | 'minutes' | 'custom'>('count')
   const [unitLabel, setUnitLabel] = useState('')
+  const [visibility, setVisibility] = useState<'private' | 'household'>('private')
+  const [templateKey, setTemplateKey] = useState('')
   const [note, setNote] = useState('')
   const [creating, setCreating] = useState(false)
 
@@ -38,6 +40,8 @@ export default function NewHabitForm({ onSuccess, onCancel }: NewHabitFormProps)
           period,
           unit,
           unitLabel: unitLabel || undefined,
+          visibility,
+          templateKey: templateKey || undefined,
         }),
       })
 
@@ -210,6 +214,54 @@ export default function NewHabitForm({ onSuccess, onCancel }: NewHabitFormProps)
             </>
           )}
           
+          {/* Visibility */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Visibility
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setVisibility('private')}
+                className={`p-3 text-sm font-medium rounded-xl border-2 transition-all ${
+                  visibility === 'private'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                }`}
+              >
+                Private
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisibility('household')}
+                className={`p-3 text-sm font-medium rounded-xl border-2 transition-all ${
+                  visibility === 'household'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                }`}
+              >
+                Household
+              </button>
+            </div>
+          </div>
+
+          {/* Template Key for merged tiles */}
+          {visibility === 'household' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Merge Key (optional)
+                <span className="text-xs text-slate-500 block">Habits with the same key will be merged into one tile</span>
+              </label>
+              <input
+                type="text"
+                value={templateKey}
+                onChange={(e) => setTemplateKey(e.target.value)}
+                placeholder="e.g., exercise, reading"
+                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          )}
+
           {/* Note */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">

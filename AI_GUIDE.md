@@ -2,10 +2,10 @@
 
 **Canonical spec:** `/docs/SPEC.md`
 **Coding standards:** `/docs/STYLE.md`
-**Current milestone:** **v1**
+**Current milestone:** **v2**
 
 ## Rules
-- Implement only v1 scope unless this file changes.
+- Implement only v2 scope unless this file changes.
 - Use Prisma types from `@prisma/client`; validate inputs with Zod DTOs in `/lib/validation.ts`.
 - Update or add tests when changing `/lib/period.ts`, `/lib/stats.ts`, or any route handler.
 - If you run `npm run dev`, make sure to time it out after a few seconds or the tool will hang for ages.

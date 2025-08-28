@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { getPrismaClient } from '@/lib/db'
 import { EventCreateDto } from '@/lib/validation'
 import { EventListResponse, EventCreateResponse } from '@/lib/api-schema'
+import { requireAuth } from '@/lib/auth-server'
 import { z } from 'zod'
 
 // GET /api/habits/:id/events - List events for a habit
@@ -12,6 +13,7 @@ export async function GET(
 ) {
   let prisma = null
   try {
+    const user = await requireAuth()
     prisma = await getPrismaClient()
     const { searchParams } = new URL(request.url)
     const from = searchParams.get('from')
@@ -34,6 +36,21 @@ export async function GET(
       dateFilter.lte = new Date(to)
     }
     
+    // Verify habit belongs to user first
+    const habit = await prisma.habit.findFirst({
+      where: {
+        id: params.id,
+        ownerUserId: user.id,
+      }
+    })
+
+    if (!habit) {
+      return NextResponse.json(
+        { error: { code: 'NotFound', message: 'Habit not found' } },
+        { status: 404 }
+      )
+    }
+
     // Fetch events from database
     const events = await prisma.event.findMany({
       where: {
@@ -50,6 +67,13 @@ export async function GET(
     
     return NextResponse.json(events)
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: { code: 'Unauthorized', message: 'Authentication required' } },
+        { status: 401 }
+      )
+    }
+    
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -77,6 +101,7 @@ export async function POST(
 ) {
   let prisma = null
   try {
+    const user = await requireAuth()
     prisma = await getPrismaClient()
     const body = await request.json()
     
@@ -91,9 +116,12 @@ export async function POST(
     // Validate request body
     const validatedData = EventCreateDto.parse(body)
     
-    // Check if habit exists
-    const habit = await prisma.habit.findUnique({
-      where: { id: params.id },
+    // Check if habit exists and belongs to user
+    const habit = await prisma.habit.findFirst({
+      where: { 
+        id: params.id,
+        ownerUserId: user.id,
+      },
     })
     
     if (!habit) {
@@ -119,6 +147,7 @@ export async function POST(
     const event = await prisma.event.create({
       data: {
         habitId: params.id,
+        userId: user.id, // Set user for the event
         tsClient,
         value: validatedData.value,
         note: validatedData.note,
@@ -134,6 +163,13 @@ export async function POST(
     
     return NextResponse.json(response, { status: 201 })
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: { code: 'Unauthorized', message: 'Authentication required' } },
+        { status: 401 }
+      )
+    }
+    
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
       return NextResponse.json(

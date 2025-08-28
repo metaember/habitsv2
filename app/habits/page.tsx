@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import NewHabitForm from '@/components/NewHabitForm'
+import AuthGuard from '@/components/AuthGuard'
 import Link from 'next/link'
 import { toast } from 'react-hot-toast'
 
@@ -113,7 +114,8 @@ export default function AllHabitsPage() {
   }
 
   return (
-    <div className="p-4 max-w-2xl mx-auto pb-24">
+    <AuthGuard>
+      <div className="p-4 max-w-2xl mx-auto pb-24">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">All Habits</h1>
         <Button onClick={() => setShowNewHabitForm(true)}>+ New Habit</Button>
@@ -235,5 +237,6 @@ export default function AllHabitsPage() {
         />
       )}
     </div>
+    </AuthGuard>
   )
 }

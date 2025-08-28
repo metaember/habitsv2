@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import CalendarHeatmap from '@/components/CalendarHeatmap'
 import HabitMatrixView from '@/components/HabitMatrixView'
+import AuthGuard from '@/components/AuthGuard'
 
 type ViewMode = 'heatmap' | 'matrix'
 
@@ -34,7 +35,8 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="p-4 max-w-6xl mx-auto">
+    <AuthGuard>
+      <div className="p-4 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Calendar</h1>
         
@@ -93,5 +95,6 @@ export default function CalendarPage() {
         <HabitMatrixView month={currentMonth} />
       )}
     </div>
+    </AuthGuard>
   )
 }

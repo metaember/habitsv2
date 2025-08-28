@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react'
 import { Habit } from '@prisma/client'
 import HabitCard from '@/components/HabitCard'
+import MergedHabitCard from '@/components/MergedHabitCard'
 import StatStrip from '@/components/StatStrip'
 import { Button } from '@/components/ui/button'
 import NewHabitForm from '@/components/NewHabitForm'
+import AuthGuard from '@/components/AuthGuard'
 import Link from 'next/link'
 
 export default function TodayPage() {
@@ -46,12 +48,55 @@ export default function TodayPage() {
     fetchHabits() // Refresh the habits list
   }
 
+  // Group habits for merged display
+  const renderHabitTiles = () => {
+    // Separate habits by templateKey
+    const mergedGroups: { [key: string]: any[] } = {}
+    const individualHabits: any[] = []
+
+    habits.forEach((habit: any) => {
+      if (habit.templateKey && habit.visibility === 'household') {
+        if (!mergedGroups[habit.templateKey]) {
+          mergedGroups[habit.templateKey] = []
+        }
+        mergedGroups[habit.templateKey].push(habit)
+      } else {
+        individualHabits.push(habit)
+      }
+    })
+
+    const tiles: React.ReactElement[] = []
+
+    // Render merged tiles
+    Object.entries(mergedGroups).forEach(([templateKey, groupHabits]) => {
+      // Use the first habit's name and emoji, or derive from templateKey
+      const primaryHabit = groupHabits[0]
+      tiles.push(
+        <MergedHabitCard
+          key={`merged-${templateKey}`}
+          templateKey={templateKey}
+          habits={groupHabits}
+          emoji={primaryHabit.emoji || '🎯'}
+          name={primaryHabit.name || templateKey}
+        />
+      )
+    })
+
+    // Render individual habit cards
+    individualHabits.forEach((habit) => {
+      tiles.push(<HabitCard key={habit.id} habit={habit} />)
+    })
+
+    return tiles
+  }
+
   if (loading) {
     return <div className="container mx-auto p-4">Loading...</div>
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <AuthGuard>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="max-w-md mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -106,9 +151,7 @@ export default function TodayPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {habits.map((habit) => (
-              <HabitCard key={habit.id} habit={habit} />
-            ))}
+            {renderHabitTiles()}
           </div>
         )}
         
@@ -120,5 +163,6 @@ export default function TodayPage() {
         )}
       </div>
     </div>
+    </AuthGuard>
   )
 }

@@ -7,8 +7,12 @@ async function main() {
   const user = await prisma.user.create({
     data: {
       name: 'Demo User',
+      email: 'demo@example.com',
+      emailVerified: false,
       timezone: 'America/New_York',
       kioskMode: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
   })
 

@@ -109,8 +109,49 @@ export default function CalendarHeatmap({ month }: CalendarHeatmapProps) {
     weeks.push(calendarData.slice(i, i + 7))
   }
 
+  // Get all unique users from calendar data
+  const getUniqueUsers = () => {
+    const usersMap = new Map()
+    calendarData.forEach(day => {
+      day.habits.forEach(habit => {
+        if (habit.events) {
+          habit.events.forEach((event: any) => {
+            if (event.user) {
+              usersMap.set(event.user.id, {
+                id: event.user.id,
+                name: event.user.name,
+                color: event.user.color || '#64748b'
+              })
+            }
+          })
+        }
+      })
+    })
+    return Array.from(usersMap.values())
+  }
+
+  const uniqueUsers = getUniqueUsers()
+
   return (
     <div className="w-full">
+      {/* User Legend */}
+      {uniqueUsers.length > 1 && (
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Users:</h4>
+          <div className="flex flex-wrap gap-2">
+            {uniqueUsers.map((user: any) => (
+              <div key={user.id} className="flex items-center space-x-2">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: user.color }}
+                />
+                <span className="text-sm text-gray-600">{user.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Week day headers */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {weekDays.map(day => (
