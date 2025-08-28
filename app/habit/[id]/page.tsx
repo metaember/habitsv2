@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
+import { getHabitStats } from '@/lib/stats'
 
 export default function HabitDetailPage({ params }: { params: { id: string } }) {
   const [habit, setHabit] = useState<Habit | null>(null)
@@ -133,20 +134,31 @@ export default function HabitDetailPage({ params }: { params: { id: string } }) 
           <CardTitle>Stats</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-500">
-                {habit.type === 'build' ? 'Current Streak' : 'Time since last failure'}
-              </p>
-              <p className="text-2xl font-bold">
-                {habit.type === 'build' ? '0 days' : '0 days'}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">30-day adherence</p>
-              <p className="text-2xl font-bold">0%</p>
-            </div>
-          </div>
+          {(() => {
+            const stats = getHabitStats(habit, events, 'America/New_York', 'MON')
+            return (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">
+                    {habit.type === 'build' ? 'Current Streak' : 'Days Clean'}
+                  </p>
+                  {habit.type === 'build' ? (
+                    <p className="text-2xl font-bold">{stats.streak} {stats.streak === 1 ? 'day' : 'days'}</p>
+                  ) : (
+                    <p className={`text-2xl font-bold ${
+                      stats.timeSinceLastFailure === 0 ? 'text-red-600' : 'text-green-600'
+                    }`}>
+                      {stats.timeSinceLastFailure || 0} {stats.timeSinceLastFailure === 1 ? 'day' : 'days'}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">30-day adherence</p>
+                  <p className="text-2xl font-bold">{Math.round(stats.adherenceRate)}%</p>
+                </div>
+              </div>
+            )
+          })()}
         </CardContent>
       </Card>
 

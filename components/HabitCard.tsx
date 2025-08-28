@@ -111,8 +111,12 @@ export default function HabitCard({ habit }: HabitCardProps) {
                 </div>
               </div>
             ) : (
-              <div className="bg-emerald-100 text-emerald-700 text-xs font-medium px-3 py-1 rounded-full">
-                {stats.timeSinceLastFailure || 0} days clean
+              <div className={`text-xs font-medium px-3 py-1 rounded-full ${
+                stats.timeSinceLastFailure === 0
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-emerald-100 text-emerald-700'
+              }`}>
+                {stats.timeSinceLastFailure || 0} {stats.timeSinceLastFailure === 1 ? 'day' : 'days'} clean
               </div>
             )}
           </div>

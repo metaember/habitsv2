@@ -101,24 +101,42 @@ export function calculateBuildStreak(
 
 /**
  * Calculate time since last failure for break habits
+ * Returns the number of days clean, counting the current day optimistically
  */
-export function calculateTimeSinceLastFailure(events: Event[]): number {
-  if (events.length === 0) return 0
+export function calculateTimeSinceLastFailure(events: Event[], tz: string = 'America/New_York'): number {
+  const now = new Date()
   
-  // Find most recent event (which would be a failure for break habits)
-  const sortedEvents = [...events].sort((a, b) => 
+  // Filter out voided events first
+  const effectiveEvents = filterEffectiveEventsInline(events)
+  
+  // If no effective events, count all days up to today as clean
+  if (effectiveEvents.length === 0) return 1 // At least 1 day clean (today)
+  
+  // Find most recent effective event (which would be a failure for break habits)
+  const sortedEvents = [...effectiveEvents].sort((a, b) => 
     new Date(b.tsClient).getTime() - new Date(a.tsClient).getTime()
   )
   
   const lastFailure = sortedEvents[0]
-  if (!lastFailure) return 0
+  if (!lastFailure) return 1
   
-  const now = new Date()
   const failureDate = new Date(lastFailure.tsClient)
   
-  // Calculate difference in days
-  const diffMs = now.getTime() - failureDate.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  // Get today's start in the specified timezone (using a simple approach)
+  const todayStart = new Date(now)
+  todayStart.setHours(0, 0, 0, 0)
+  
+  // Check if the failure was today or later
+  if (failureDate.getTime() >= todayStart.getTime()) {
+    return 0 // Failed today, so 0 days clean
+  }
+  
+  // Calculate difference in days from the start of the failure day
+  const failureDayStart = new Date(failureDate)
+  failureDayStart.setHours(0, 0, 0, 0)
+  
+  const diffMs = todayStart.getTime() - failureDayStart.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
   
   return diffDays
 }
@@ -273,7 +291,7 @@ export function getHabitStats(
     stats.streak = calculateBuildStreak(eventsArray, habit, tz, weekStart)
     stats.isOnPace = isOnPace(currentPeriodProgress, habit.target, currentPeriod.start, currentPeriod.end)
   } else {
-    stats.timeSinceLastFailure = calculateTimeSinceLastFailure(eventsArray)
+    stats.timeSinceLastFailure = calculateTimeSinceLastFailure(eventsArray, tz)
     stats.isOnPace = currentPeriodEvents.length === 0 // No failures yet
   }
   
