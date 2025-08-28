@@ -53,12 +53,27 @@ export default function HabitCard({ habit }: HabitCardProps) {
     custom: 'this period'
   }[habit.period]
 
+  // Get unit display for progress text
+  const getUnitDisplay = () => {
+    if (habit.type === 'break') return ''
+    if (habit.unit === 'custom' && habit.unitLabel) {
+      return habit.unitLabel
+    }
+    if (habit.unit === 'minutes') {
+      return 'min'
+    }
+    return '' // for count, don't show unit in compact display
+  }
+
   const handleQuickLog = async () => {
     try {
+      // Use appropriate quick log value based on unit
+      const quickValue = habit.unit === 'minutes' ? 5 : 1
+      
       const res = await fetch(`/api/habits/${habit.id}/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: 1 })
+        body: JSON.stringify({ value: quickValue })
       })
       
       if (!res.ok) throw new Error('Failed to log event')
@@ -70,6 +85,13 @@ export default function HabitCard({ habit }: HabitCardProps) {
       console.error('Failed to log event:', error)
       toast.error('Failed to log event')
     }
+  }
+  
+  const getQuickButtonLabel = () => {
+    if (habit.type === 'break') return 'Log Incident'
+    if (habit.unit === 'minutes') return '+5min'
+    if (habit.unit === 'custom' && habit.unitLabel) return `+1`
+    return '+1'
   }
 
   const handleLogSuccess = () => {
@@ -90,7 +112,7 @@ export default function HabitCard({ habit }: HabitCardProps) {
                 <h3 className="text-lg font-semibold text-slate-900">{habit.name}</h3>
                 <p className="text-sm text-slate-500">
                   {habit.type === 'build' 
-                    ? `${stats.currentPeriodProgress}/${habit.target} ${periodLabel}` 
+                    ? `${stats.currentPeriodProgress}/${habit.target}${getUnitDisplay() ? ` ${getUnitDisplay()}` : ''} ${periodLabel}` 
                     : 'Break habit'}
                 </p>
               </div>
@@ -155,7 +177,7 @@ export default function HabitCard({ habit }: HabitCardProps) {
                   : 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/25'
               }`}
             >
-              {habit.type === 'build' ? '+1' : 'Log Incident'}
+              {getQuickButtonLabel()}
             </button>
             
             <button

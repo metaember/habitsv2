@@ -6,10 +6,13 @@ describe('Break Habits with Voided Events', () => {
   const mockEvent = (id: string, value: number, tsClient: Date, meta: any = {}): Event => ({
     id,
     habitId: 'test-habit',
+    userId: 'test-user',
     value,
     note: null,
     tsClient,
     tsServer: tsClient,
+    source: 'ui' as any,
+    clientId: null,
     meta
   })
 

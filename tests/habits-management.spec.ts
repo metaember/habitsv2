@@ -24,7 +24,7 @@ describe('Habits Management Logic', () => {
       const direction = 'down'
 
       const newOrder = [...orderIds]
-      const targetIndex = direction === 'up' ? index - 1 : index + 1
+      const targetIndex = index + 1 // move down
 
       // Swap positions
       ;[newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]]
@@ -47,7 +47,7 @@ describe('Habits Management Logic', () => {
       const orderIds = ['habit1', 'habit2', 'habit3']
       const index = 2 // habit3
       const direction = 'down'
-      const targetIndex = direction === 'up' ? index - 1 : index + 1
+      const targetIndex = index + 1 // would be out of bounds
 
       expect(targetIndex).toBe(3) // Would be out of bounds
       // In the actual implementation, this would return early

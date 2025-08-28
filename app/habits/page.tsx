@@ -144,7 +144,7 @@ export default function AllHabitsPage() {
                     <div>
                       <h3 className="font-medium">{habit.name}</h3>
                       <p className="text-sm text-gray-500 capitalize">
-                        {habit.type} • {habit.target} per {habit.period}
+                        {habit.type} • {habit.target}{habit.unit === 'custom' && habit.unitLabel ? ` ${habit.unitLabel}` : habit.unit === 'minutes' ? ' min' : ''} per {habit.period}
                       </p>
                     </div>
                   </Link>
@@ -208,7 +208,7 @@ export default function AllHabitsPage() {
                   <div>
                     <h3 className="font-medium">{habit.name}</h3>
                     <p className="text-sm text-gray-500 capitalize">
-                      {habit.type} • {habit.target} per {habit.period}
+                      {habit.type} • {habit.target}{habit.unit === 'custom' && habit.unitLabel ? ` ${habit.unitLabel}` : habit.unit === 'minutes' ? ' min' : ''} per {habit.period}
                     </p>
                   </div>
                 </Link>
