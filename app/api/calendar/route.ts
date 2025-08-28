@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
         } else {
           // Break habit: success = no incidents
           isSuccess = habitEvents.length === 0
-          intensity = habitEvents.length > 0 ? 1 : 0 // Binary for break habits
+          intensity = habitEvents.length > 0 ? 0 : 1 // High intensity for no failures (success)
         }
 
         return {
