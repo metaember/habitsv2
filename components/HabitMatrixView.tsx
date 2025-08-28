@@ -215,6 +215,30 @@ export default function HabitMatrixView({ month }: HabitMatrixViewProps) {
           habits={selectedDay.habits}
           isOpen={!!selectedDay}
           onClose={() => setSelectedDay(null)}
+          onRefresh={() => {
+            // Re-fetch calendar data when events are logged
+            const fetchCalendarData = async () => {
+              try {
+                const response = await fetch(`/api/calendar?month=${month}`)
+                if (response.ok) {
+                  const data = await response.json()
+                  const newCalendarData = data.days || []
+                  setCalendarData(newCalendarData)
+                  
+                  // Update selectedDay with fresh data if it's still selected
+                  if (selectedDay) {
+                    const updatedSelectedDay = newCalendarData.find(day => day.date === selectedDay.date)
+                    if (updatedSelectedDay) {
+                      setSelectedDay(updatedSelectedDay)
+                    }
+                  }
+                }
+              } catch (err) {
+                // Silently fail refresh
+              }
+            }
+            fetchCalendarData()
+          }}
         />
       )}
     </div>

@@ -1,5 +1,9 @@
 'use client'
 
+import { useState } from 'react'
+import { toast } from 'react-hot-toast'
+import Link from 'next/link'
+
 interface DayHabit {
   habitId: string
   name: string
@@ -23,10 +27,15 @@ interface DayDrawerProps {
   habits: DayHabit[]
   isOpen: boolean
   onClose: () => void
+  onRefresh?: () => void // Callback to refresh data after logging
 }
 
-export default function DayDrawer({ date, habits, isOpen, onClose }: DayDrawerProps) {
+export default function DayDrawer({ date, habits, isOpen, onClose, onRefresh }: DayDrawerProps) {
+  const [loggingHabits, setLoggingHabits] = useState<Set<string>>(new Set())
+  
   if (!isOpen) return null
+  
+  const isToday = date === new Date().toISOString().split('T')[0]
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00')
@@ -66,6 +75,38 @@ export default function DayDrawer({ date, habits, isOpen, onClose }: DayDrawerPr
       return habit.isSuccess ? 'Clean day' : 'Had incidents'
     }
   }
+  
+  const handleQuickLog = async (habitId: string, habitType: 'build' | 'break') => {
+    if (loggingHabits.has(habitId)) return // Prevent double clicks
+    
+    setLoggingHabits(prev => new Set(Array.from(prev).concat(habitId)))
+    
+    try {
+      const value = habitType === 'break' ? 1 : 1 // Always 1 for quick log
+      const res = await fetch(`/api/habits/${habitId}/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ value }),
+      })
+      
+      if (res.ok) {
+        toast.success(`${habitType === 'break' ? 'Incident' : '+1'} logged successfully!`)
+        onRefresh?.() // Refresh the calendar data
+      } else {
+        toast.error('Failed to log event')
+      }
+    } catch (error) {
+      toast.error('Failed to log event')
+    } finally {
+      setLoggingHabits(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(habitId)
+        return newSet
+      })
+    }
+  }
 
   return (
     <>
@@ -103,7 +144,10 @@ export default function DayDrawer({ date, habits, isOpen, onClose }: DayDrawerPr
               {habits.map((habit) => (
                 <div key={habit.habitId} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
+                    <Link 
+                      href={`/habit/${habit.habitId}`}
+                      className="flex items-center gap-2 flex-grow hover:bg-gray-50 -m-2 p-2 rounded transition-colors"
+                    >
                       {habit.emoji && (
                         <span className="text-lg">{habit.emoji}</span>
                       )}
@@ -113,14 +157,32 @@ export default function DayDrawer({ date, habits, isOpen, onClose }: DayDrawerPr
                           {habit.type} habit
                         </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`text-sm font-medium ${getStatusColor(habit)}`}>
-                        {getStatusText(habit)}
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <div className={`text-sm font-medium ${getStatusColor(habit)}`}>
+                          {getStatusText(habit)}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          {getProgressText(habit)}
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        {getProgressText(habit)}
-                      </div>
+                      {/* Quick +1 button for today */}
+                      {isToday && (
+                        <button
+                          onClick={() => handleQuickLog(habit.habitId, habit.type)}
+                          disabled={loggingHabits.has(habit.habitId)}
+                          className={`ml-2 px-2 py-1 rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                            habit.type === 'build'
+                              ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                              : 'bg-red-500 hover:bg-red-600 text-white'
+                          }`}
+                          title={habit.type === 'build' ? 'Quick +1' : 'Log incident'}
+                        >
+                          {loggingHabits.has(habit.habitId) ? '...' : 
+                           habit.type === 'build' ? '+1' : '⚠️'}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -161,18 +223,15 @@ export default function DayDrawer({ date, habits, isOpen, onClose }: DayDrawerPr
           )}
         </div>
 
-        {/* Footer - only show log button for today */}
-        {date === new Date().toISOString().split('T')[0] && (
+        {/* Footer - only show for today */}
+        {isToday && (
           <div className="border-t border-gray-200 p-4 sticky bottom-0 bg-white">
-            <button
-              onClick={() => {
-                // Navigate to today page for logging
-                window.location.href = '/today'
-              }}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+            <Link
+              href="/today"
+              className="block w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center"
             >
-              Log Activity for Today
-            </button>
+              Go to Today Page
+            </Link>
           </div>
         )}
       </div>
