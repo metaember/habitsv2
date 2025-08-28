@@ -4,12 +4,12 @@ import { createAuthClient } from "better-auth/react"
 import { useContext, createContext } from "react"
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NODE_ENV === 'production' ? 'https://your-domain.com' : 'http://localhost:3000'
+  baseURL: process.env.NODE_ENV === 'production' ? process.env.DOMAIN : process.env.BETTER_AUTH_URL!
 })
 
 export const {
   signIn,
-  signUp, 
+  signUp,
   signOut,
   useSession,
   getSession
