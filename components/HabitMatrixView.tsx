@@ -227,7 +227,7 @@ export default function HabitMatrixView({ month }: HabitMatrixViewProps) {
                   
                   // Update selectedDay with fresh data if it's still selected
                   if (selectedDay) {
-                    const updatedSelectedDay = newCalendarData.find(day => day.date === selectedDay.date)
+                    const updatedSelectedDay = newCalendarData.find((day: CalendarDay) => day.date === selectedDay.date)
                     if (updatedSelectedDay) {
                       setSelectedDay(updatedSelectedDay)
                     }

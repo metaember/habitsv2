@@ -6,7 +6,6 @@
 
 ## Rules
 - Implement only v1 scope unless this file changes.
-- Do not introduce calendar, import, multi-user, webhooks, or jobs.
 - Use Prisma types from `@prisma/client`; validate inputs with Zod DTOs in `/lib/validation.ts`.
 - Update or add tests when changing `/lib/period.ts`, `/lib/stats.ts`, or any route handler.
 - If you run `npm run dev`, make sure to time it out after a few seconds or the tool will hang for ages.

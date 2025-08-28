@@ -5,18 +5,19 @@ import { z } from 'zod'
 const HabitImportDto = z.object({
   kind: z.literal('habit'),
   id: z.string().uuid(),
+  ownerUserId: z.string().uuid().nullable().optional(),
   name: z.string().min(1).max(60),
-  emoji: z.string().optional(),
+  emoji: z.string().nullable().optional(),
   type: z.enum(['build', 'break']),
-  target: z.number().positive(),
+  target: z.number().min(0),
   period: z.enum(['day', 'week', 'month', 'custom']),
   unit: z.enum(['count', 'minutes', 'custom']).default('count'),
-  unitLabel: z.string().max(12).optional(),
+  unitLabel: z.string().max(12).nullable().optional(),
   active: z.boolean().default(true),
-  scheduleDowMask: z.number().int().min(0).max(127).optional(),
-  windowStart: z.string().optional(),
-  windowEnd: z.string().optional(),
-  templateKey: z.string().optional(),
+  scheduleDowMask: z.number().int().min(0).max(127).nullable().optional(),
+  windowStart: z.string().nullable().optional(),
+  windowEnd: z.string().nullable().optional(),
+  templateKey: z.string().nullable().optional(),
   visibility: z.enum(['private', 'household', 'group', 'public_link']).default('private'),
 })
 
@@ -24,13 +25,14 @@ const EventImportDto = z.object({
   kind: z.literal('event'),
   id: z.string().uuid(),
   habitId: z.string().uuid(),
+  userId: z.string().uuid().nullable().optional(),
   tsClient: z.string().datetime(),
   tsServer: z.string().datetime(),
   value: z.number().positive().default(1),
-  note: z.string().max(280).optional(),
+  note: z.string().max(280).nullable().optional(),
   source: z.enum(['ui', 'import', 'webhook', 'puller', 'other']).default('import'),
-  clientId: z.string().max(64).optional(),
-  meta: z.any().optional(),
+  clientId: z.string().max(64).nullable().optional(),
+  meta: z.any().nullable().optional(),
 })
 
 type ImportResult = {
@@ -134,6 +136,7 @@ export async function POST(request: NextRequest) {
         await prisma.habit.create({
           data: {
             id: item.data.id,
+            ownerUserId: item.data.ownerUserId,
             name: item.data.name,
             emoji: item.data.emoji,
             type: item.data.type,
@@ -169,7 +172,8 @@ export async function POST(request: NextRequest) {
             habitId: item.data.habitId,
             tsClient: new Date(item.data.tsClient),
             value: item.data.value,
-            ...(item.data.clientId ? { clientId: item.data.clientId } : {})
+            ...(item.data.clientId ? { clientId: item.data.clientId } : {}),
+            ...(item.data.userId ? { userId: item.data.userId } : { userId: null })
           }
         })
 
@@ -196,6 +200,7 @@ export async function POST(request: NextRequest) {
           data: {
             id: item.data.id,
             habitId: item.data.habitId,
+            userId: item.data.userId,
             tsClient: new Date(item.data.tsClient),
             tsServer: new Date(item.data.tsServer),
             value: item.data.value,

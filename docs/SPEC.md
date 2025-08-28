@@ -251,7 +251,7 @@ stats cache endpoints (v4) • groups/challenges CRUD (v6)
 
 #### Auth
 
-- Auth.js with email magic links or passkeys.
+- [Better Auth](https://www.better-auth.com/) with email magic links or passkeys.
 - Store sessions in Postgres via Prisma adapter.
 - Add `ownerUserId` on habits; require `userId` on new events; backfill legacy events to a default user.
 
@@ -484,20 +484,20 @@ Work only within scope; update tests in /tests when modifying helpers or routes.
 ## 10) Milestone checklist (DoD)
 
 ### v0
-- [ ] Prisma schema + migrations
-- [ ] Today / Habit Detail / Log Entry / All Habits / Settings (export)
+- [X] Prisma schema + migrations
+- [X] Today / Habit Detail / Log Entry / All Habits / Settings (export)
 - [ ] `period.ts`, `stats.ts` + unit tests
 - [ ] API: habits (GET/POST), events (GET/POST), export.jsonl, health
 - [ ] Basic accessibility (labels, focus, hit areas)
 
 ### v1
-- [ ] Units UI (minutes/custom) + quick presets
-- [ ] Calendar month view + day drawer
-- [ ] Import.jsonl (dry run + dedupe)
-- [ ] Round-trip test
+- [X] Units UI (minutes/custom) + quick presets
+- [X] Calendar month view + day drawer
+- [X] Import.jsonl (dry run + dedupe)
+- [X] Round-trip test
 
 ### v2
-- [ ] Auth.js, sessions, user profile chips
+- [ ] Better Auth sessions, user profile chips
 - [ ] Backfill single-user data to default user
 - [ ] Merged tiles (templateKey) + per-user colors
 
