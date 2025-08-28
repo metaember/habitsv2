@@ -37,3 +37,20 @@ export function filterEffectiveEvents(events: any[]): any[] {
     return true
   })
 }
+
+/**
+ * Group events by date (YYYY-MM-DD)
+ */
+export function groupEventsByDate(events: any[]): Record<string, any[]> {
+  const groups: Record<string, any[]> = {}
+  
+  events.forEach(event => {
+    const date = new Date(event.tsClient).toISOString().split('T')[0]
+    if (!groups[date]) {
+      groups[date] = []
+    }
+    groups[date].push(event)
+  })
+  
+  return groups
+}
