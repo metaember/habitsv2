@@ -1,12 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import EmojiPicker from '@/components/EmojiPicker'
+import { Habit } from '@prisma/client'
 
 interface NewHabitFormProps {
   onSuccess: () => void
   onCancel: () => void
+}
+
+interface HouseholdHabit {
+  id: string
+  name: string
+  emoji?: string
+  templateKey?: string
+  owner?: {
+    name: string
+  }
 }
 
 export default function NewHabitForm({ onSuccess, onCancel }: NewHabitFormProps) {
@@ -21,12 +32,87 @@ export default function NewHabitForm({ onSuccess, onCancel }: NewHabitFormProps)
   const [templateKey, setTemplateKey] = useState('')
   const [note, setNote] = useState('')
   const [creating, setCreating] = useState(false)
+  
+  // New state for household habits
+  const [householdHabits, setHouseholdHabits] = useState<HouseholdHabit[]>([])
+  const [selectedHouseholdHabit, setSelectedHouseholdHabit] = useState<string>('')
+  const [loadingHouseholdHabits, setLoadingHouseholdHabits] = useState(false)
+
+  // Fetch household habits when visibility is set to household
+  useEffect(() => {
+    if (visibility === 'household') {
+      fetchHouseholdHabits()
+    } else {
+      setSelectedHouseholdHabit('')
+      setHouseholdHabits([])
+    }
+  }, [visibility])
+
+  // Update form when a household habit is selected
+  useEffect(() => {
+    if (selectedHouseholdHabit && selectedHouseholdHabit !== 'new') {
+      const habit = householdHabits.find(h => h.templateKey === selectedHouseholdHabit)
+      if (habit) {
+        setTemplateKey(habit.templateKey || '')
+        // Optionally pre-fill name and emoji from the selected habit
+        if (!name) setName(habit.name)
+        if (!emoji) setEmoji(habit.emoji || '')
+      }
+    } else if (selectedHouseholdHabit === 'new') {
+      // Clear templateKey for new individual habit
+      setTemplateKey('')
+    }
+  }, [selectedHouseholdHabit, householdHabits])
+
+  const fetchHouseholdHabits = async () => {
+    setLoadingHouseholdHabits(true)
+    try {
+      const res = await fetch('/api/habits')
+      if (res.ok) {
+        const habits = await res.json()
+        // Filter to only household-visible habits with templateKeys
+        const householdOnlyHabits = habits.filter((h: any) => 
+          h.visibility === 'household' && h.templateKey
+        )
+        
+        // Group by templateKey to show merged habits together
+        const groupedByTemplate = householdOnlyHabits.reduce((acc: any, habit: any) => {
+          if (!acc[habit.templateKey]) {
+            acc[habit.templateKey] = habit
+          }
+          return acc
+        }, {})
+        
+        setHouseholdHabits(Object.values(groupedByTemplate))
+      }
+    } catch (error) {
+      console.error('Failed to fetch household habits:', error)
+    } finally {
+      setLoadingHouseholdHabits(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setCreating(true)
     
     try {
+      // Determine the final templateKey
+      let finalTemplateKey: string | undefined = undefined
+      if (visibility === 'household') {
+        if (selectedHouseholdHabit && selectedHouseholdHabit !== 'new') {
+          // Use the selected household habit's templateKey
+          finalTemplateKey = selectedHouseholdHabit
+        } else if (selectedHouseholdHabit === 'new' && templateKey) {
+          // Use the manually entered templateKey
+          finalTemplateKey = templateKey
+        } else if (!selectedHouseholdHabit && templateKey) {
+          // Legacy support: if no selection made but templateKey entered
+          finalTemplateKey = templateKey
+        }
+        // If household visibility but no templateKey, it's a regular household habit
+      }
+      
       const res = await fetch('/api/habits', {
         method: 'POST',
         headers: {
@@ -41,7 +127,7 @@ export default function NewHabitForm({ onSuccess, onCancel }: NewHabitFormProps)
           unit,
           unitLabel: unitLabel || undefined,
           visibility,
-          templateKey: templateKey || undefined,
+          templateKey: finalTemplateKey,
         }),
       })
 
@@ -245,20 +331,61 @@ export default function NewHabitForm({ onSuccess, onCancel }: NewHabitFormProps)
             </div>
           </div>
 
-          {/* Template Key for merged tiles */}
+          {/* Join existing household habit or create new */}
           {visibility === 'household' && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Merge Key (optional)
-                <span className="text-xs text-slate-500 block">Habits with the same key will be merged into one tile</span>
+                Join or Create Household Habit
               </label>
-              <input
-                type="text"
-                value={templateKey}
-                onChange={(e) => setTemplateKey(e.target.value)}
-                placeholder="e.g., exercise, reading"
-                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              {loadingHouseholdHabits ? (
+                <div className="w-full p-3 border border-slate-200 rounded-xl text-slate-500">
+                  Loading household habits...
+                </div>
+              ) : (
+                <select
+                  value={selectedHouseholdHabit}
+                  onChange={(e) => setSelectedHouseholdHabit(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select an option...</option>
+                  <option value="new">Create new individual habit</option>
+                  {householdHabits.length > 0 && (
+                    <optgroup label="Join existing household habit">
+                      {householdHabits.map((habit) => (
+                        <option key={habit.templateKey} value={habit.templateKey}>
+                          {habit.emoji} {habit.name} ({habit.owner?.name || 'Unknown'})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              )}
+              
+              {/* Show templateKey field for creating new merged habits */}
+              {selectedHouseholdHabit === 'new' && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Template Key (for merging)
+                    <span className="text-xs text-slate-500 block">
+                      Enter a unique key if you want other household members to join this habit
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={templateKey}
+                    onChange={(e) => setTemplateKey(e.target.value)}
+                    placeholder="e.g., exercise, reading"
+                    className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              )}
+              
+              {/* Show info when joining existing habit */}
+              {selectedHouseholdHabit && selectedHouseholdHabit !== 'new' && (
+                <p className="mt-2 text-sm text-blue-600">
+                  ✓ Your habit will be merged with the existing household habit
+                </p>
+              )}
             </div>
           )}
 

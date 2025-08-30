@@ -1,11 +1,13 @@
-# Habits Tracker (v0)
+# Habits Tracker (v2)
 
 A habit tracking application built with Next.js, TypeScript, and Prisma.
 
-This is v0 of the Habit Tracker, implementing the core single-user features:
-- Creating habits (build/break)
-- Logging events
-- Basic stats on Today and Habit Detail pages
+This is v2 of the Habit Tracker, implementing multi-user household features:
+- Creating habits (build/break) with household visibility
+- Multi-user households with member management
+- Merged habit displays for shared templateKey habits
+- Per-user progress tracking in household habits
+- User switching and authentication
 - Immutable event log with Undo via void events
 - JSONL export of all habits and events
 

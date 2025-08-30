@@ -5,13 +5,15 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY prisma ./prisma/
 
 # Install dependencies
 RUN npm ci
 
 # Copy source code
 COPY . .
+
+# Debug: List prisma migrations
+RUN ls -la prisma/migrations/
 
 # BUG WORKASROUND: SEE https://github.com/prisma/prisma/issues/25817
 RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
@@ -44,8 +46,8 @@ RUN apk add --no-cache dumb-init
 RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+RUN addgroup -g 1002 -S nodejs
+RUN adduser -S nextjs -u 1002
 
 # Copy built application
 COPY --from=builder /app/package*.json ./

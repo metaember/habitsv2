@@ -151,9 +151,29 @@ export default function MergedHabitCard({
 
               {/* Quick log button */}
               <button
-                onClick={() => {
-                  // TODO: Implement quick log for specific user's habit
-                  toast.success('Quick log feature coming soon!')
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`/api/habits/${habit.id}/events`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        value: 1,
+                        source: 'ui',
+                        date: new Date().toISOString().split('T')[0]
+                      }),
+                    })
+
+                    if (response.ok) {
+                      toast.success(`Logged for ${userName}!`)
+                      fetchAllEvents() // Refresh the data
+                    } else {
+                      toast.error('Failed to log event')
+                    }
+                  } catch (error) {
+                    toast.error('Failed to log event')
+                  }
                 }}
                 className="w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-500/25 transition-all duration-200 hover:scale-105"
               >

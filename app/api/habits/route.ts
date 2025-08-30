@@ -13,13 +13,29 @@ export async function GET() {
     const user = await requireAuth()
     prisma = await getPrismaClient()
     
+    // Get user's household info
+    const currentUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { householdId: true }
+    })
+    
+    // Build query conditions
+    const whereConditions: any[] = [
+      { ownerUserId: user.id }, // User's own habits
+    ]
+    
+    // If user is in a household, also show household habits from other household members
+    if (currentUser?.householdId) {
+      whereConditions.push({
+        AND: [
+          { visibility: 'household' },
+          { owner: { householdId: currentUser.householdId } }
+        ]
+      })
+    }
+    
     const habits = await prisma.habit.findMany({
-      where: {
-        OR: [
-          { ownerUserId: user.id }, // User's own habits
-          { visibility: 'household' }, // All household habits (for v2 simplification)
-        ],
-      },
+      where: { OR: whereConditions },
       select: {
         id: true,
         name: true,

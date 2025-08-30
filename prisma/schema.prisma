@@ -48,6 +48,8 @@ model User {
   timezone      String    @default("America/New_York")
   kioskMode     Boolean   @default(false)
   kioskPin      String?
+  householdId   String?
+  household     Household? @relation(fields: [householdId], references: [id])
   Habits        Habit[]
   Events        Event[]
   email         String
@@ -60,6 +62,16 @@ model User {
 
   @@unique([email])
   @@map("user")
+}
+
+model Household {
+  id        String   @id @default(uuid())
+  name      String
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("household")
 }
 
 model Habit {

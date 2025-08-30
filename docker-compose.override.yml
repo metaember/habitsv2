@@ -7,7 +7,7 @@ services:
       - "3001:3000"
     environment:
       NODE_ENV: development
-      BETTER_AUTH_URL: http://localhost:3001
+      BETTER_AUTH_URL: http://localhost:3000
     volumes:
       # Mount source code for hot reload (excluding node_modules)
       - .:/app

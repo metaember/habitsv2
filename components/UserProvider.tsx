@@ -38,16 +38,32 @@ export default function UserProvider({ children }: UserProviderProps) {
     }
   }, [session, activeUserId])
 
-  // Fetch household users (for v2, we'll start simple with just the current user)
+  // Fetch household users
   useEffect(() => {
     if (session?.user) {
-      // TODO: In full v2, fetch household members here
-      // For now, just show current user
-      setAvailableUsers([{
-        id: session.user.id,
-        name: session.user.name,
-        color: (session.user as any).color
-      }])
+      fetch('/api/households')
+        .then(res => res.json())
+        .then(data => {
+          if (data.household?.users) {
+            setAvailableUsers(data.household.users)
+          } else {
+            // User not in household, just show current user
+            setAvailableUsers([{
+              id: session.user.id,
+              name: session.user.name,
+              color: (session.user as any).color
+            }])
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching household:', error)
+          // Fallback to just current user
+          setAvailableUsers([{
+            id: session.user.id,
+            name: session.user.name,
+            color: (session.user as any).color
+          }])
+        })
     }
   }, [session])
 

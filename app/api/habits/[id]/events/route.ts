@@ -36,11 +36,32 @@ export async function GET(
       dateFilter.lte = new Date(to)
     }
     
-    // Verify habit belongs to user first
+    // Get user's household info
+    const currentUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { householdId: true }
+    })
+
+    // Build where condition for habit access
+    const habitWhereConditions: any[] = [
+      { ownerUserId: user.id }, // User's own habits
+    ]
+    
+    // If user is in a household, also allow access to household habits from same household
+    if (currentUser?.householdId) {
+      habitWhereConditions.push({
+        AND: [
+          { visibility: 'household' },
+          { owner: { householdId: currentUser.householdId } }
+        ]
+      })
+    }
+
+    // Verify habit is accessible to user
     const habit = await prisma.habit.findFirst({
       where: {
         id: params.id,
-        ownerUserId: user.id,
+        OR: habitWhereConditions
       }
     })
 
@@ -116,11 +137,32 @@ export async function POST(
     // Validate request body
     const validatedData = EventCreateDto.parse(body)
     
-    // Check if habit exists and belongs to user
+    // Get user's household info
+    const currentUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { householdId: true }
+    })
+
+    // Build where condition for habit access
+    const habitWhereConditions: any[] = [
+      { ownerUserId: user.id }, // User's own habits
+    ]
+    
+    // If user is in a household, also allow access to household habits from same household
+    if (currentUser?.householdId) {
+      habitWhereConditions.push({
+        AND: [
+          { visibility: 'household' },
+          { owner: { householdId: currentUser.householdId } }
+        ]
+      })
+    }
+
+    // Check if habit exists and is accessible to user
     const habit = await prisma.habit.findFirst({
       where: { 
         id: params.id,
-        ownerUserId: user.id,
+        OR: habitWhereConditions
       },
     })
     
