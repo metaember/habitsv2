@@ -1,0 +1,19 @@
+name: deploy
+on:
+  push:
+    branches: [ main ]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Trust server host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ vars.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Trigger deploy (ForceCommand runs)
+        run: ssh -o StrictHostKeyChecking=yes ${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}
