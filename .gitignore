@@ -90,7 +90,6 @@ coverage/
 
 # Prisma
 /generated/prisma
-/prisma/migrations/**/migration.sql
 
 # Testing
 /coverage
