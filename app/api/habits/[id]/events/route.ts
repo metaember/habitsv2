@@ -185,6 +185,15 @@ export async function POST(
       )
     }
     
+    // Validate tsClient is not too far in the past (30 days limit)
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    if (tsClient < thirtyDaysAgo) {
+      return NextResponse.json(
+        { error: { code: 'BadRequest', message: 'Cannot log events older than 30 days' } },
+        { status: 400 }
+      )
+    }
+    
     // Create event in database
     const event = await prisma.event.create({
       data: {
