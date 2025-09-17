@@ -107,6 +107,18 @@ export async function GET(request: NextRequest) {
     // Filter out voided events
     const effectiveEvents = filterEffectiveEvents(events)
 
+    // Sort habits by name first, then by owner name for grouping
+    const sortedHabits = habits.sort((a: any, b: any) => {
+      // First sort by habit name
+      const nameCompare = a.name.localeCompare(b.name)
+      if (nameCompare !== 0) return nameCompare
+      
+      // Then by owner name if same habit name
+      const aOwnerName = a.owner?.name || ''
+      const bOwnerName = b.owner?.name || ''
+      return aOwnerName.localeCompare(bOwnerName)
+    })
+
     // Group events by habit and calculate day cells
     const dayCells: Array<{
       date: string // YYYY-MM-DD
@@ -120,6 +132,9 @@ export async function GET(request: NextRequest) {
         progress: number
         isSuccess: boolean
         intensity: number // 0-1 for heat map
+        ownerUserId: string | null
+        ownerName: string | null
+        ownerColor: string | null
         events: Array<{
           id: string
           value: number
@@ -134,7 +149,7 @@ export async function GET(request: NextRequest) {
     while (currentDate <= endDate) {
       const dateStr = currentDate.toISOString().split('T')[0] // YYYY-MM-DD
       
-      const dayHabits = habits.map((habit: Habit) => {
+      const dayHabits = sortedHabits.map((habit: any) => {
         // Get events for this day and habit
         const dayStart = new Date(currentDate)
         dayStart.setHours(0, 0, 0, 0)
@@ -171,6 +186,9 @@ export async function GET(request: NextRequest) {
           progress,
           isSuccess,
           intensity,
+          ownerUserId: habit.ownerUserId,
+          ownerName: habit.owner?.name || null,
+          ownerColor: habit.owner?.color || null,
           events: habitEvents.map(e => ({
             id: e.id,
             value: e.value,
