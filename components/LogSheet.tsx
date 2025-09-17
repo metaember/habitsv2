@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Habit } from '@prisma/client'
+import { Habit, Event } from '@prisma/client'
 import { toast } from 'react-hot-toast'
+import DatePicker from './DatePicker'
+import { formatDateDisplay, setTimeToNoon, isToday } from '@/lib/date-utils'
 
 interface LogSheetProps {
   habit: Habit
@@ -15,12 +17,16 @@ export default function LogSheet({ habit, onClose, onLog }: LogSheetProps) {
   const [note, setNote] = useState('')
   const [logging, setLogging] = useState(false)
   const [recentValues, setRecentValues] = useState<number[]>([])
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [habitEvents, setHabitEvents] = useState<Event[]>([])
 
-  // Load recent values for custom units
+  // Load recent values for custom units and events for date picker
   useEffect(() => {
     if (habit.unit === 'custom') {
       loadRecentValues()
     }
+    loadHabitEvents()
   }, [habit.id, habit.unit])
 
   const loadRecentValues = async () => {
@@ -37,6 +43,23 @@ export default function LogSheet({ habit, onClose, onLog }: LogSheetProps) {
       }
     } catch (error) {
       // Silently fail - recent values are optional
+    }
+  }
+
+  const loadHabitEvents = async () => {
+    try {
+      // Load events from the last 30 days for the calendar
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const res = await fetch(
+        `/api/habits/${habit.id}/events?from=${thirtyDaysAgo.toISOString()}`
+      )
+      if (res.ok) {
+        const events = await res.json()
+        setHabitEvents(events)
+      }
+    } catch (error) {
+      // Silently fail - events for calendar are optional
     }
   }
 
@@ -62,6 +85,9 @@ export default function LogSheet({ habit, onClose, onLog }: LogSheetProps) {
   const handleLog = async () => {
     setLogging(true)
     try {
+      // Set the time to noon for past dates, use current time for today
+      const logDate = isToday(selectedDate) ? new Date() : setTimeToNoon(selectedDate)
+      
       const res = await fetch(`/api/habits/${habit.id}/events`, {
         method: 'POST',
         headers: {
@@ -70,6 +96,7 @@ export default function LogSheet({ habit, onClose, onLog }: LogSheetProps) {
         body: JSON.stringify({
           value: habit.type === 'break' ? 1 : value,
           note: note.trim() || undefined,
+          tsClient: logDate.toISOString(),
         }),
       })
 
@@ -114,6 +141,44 @@ export default function LogSheet({ habit, onClose, onLog }: LogSheetProps) {
 
         {/* Content */}
         <div className="px-6 pb-6 space-y-6">
+          {/* Date Selection */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-3">
+              When did you complete this?
+            </label>
+            <div className="relative">
+              <button
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-left flex items-center justify-between"
+              >
+                <span className="font-medium text-slate-900">
+                  {formatDateDisplay(selectedDate)}
+                </span>
+                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </button>
+              
+              {showDatePicker && (
+                <DatePicker
+                  habitId={habit.id}
+                  value={selectedDate}
+                  onChange={(date) => {
+                    setSelectedDate(date)
+                    setShowDatePicker(false)
+                  }}
+                  events={habitEvents}
+                  onClose={() => setShowDatePicker(false)}
+                />
+              )}
+            </div>
+            {!isToday(selectedDate) && (
+              <p className="text-xs text-amber-600 mt-2">
+                Logging for a past date
+              </p>
+            )}
+          </div>
           {/* Value Input for Build Habits */}
           {habit.type === 'build' && (
             <div>

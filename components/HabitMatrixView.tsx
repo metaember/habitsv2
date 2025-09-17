@@ -15,6 +15,9 @@ interface CalendarDay {
     progress: number
     isSuccess: boolean
     intensity: number
+    ownerUserId: string | null
+    ownerName: string | null
+    ownerColor: string | null
     events: Array<{
       id: string
       value: number
@@ -65,21 +68,45 @@ export default function HabitMatrixView({ month }: HabitMatrixViewProps) {
     return <div className="text-center py-8 text-red-600">Error: {error}</div>
   }
 
-  // Get all unique habits across all days
-  const allHabits = new Map<string, { name: string; emoji: string | null; type: 'build' | 'break' }>()
+  // Get all unique habits across all days with owner info
+  const allHabits = new Map<string, { 
+    name: string
+    emoji: string | null
+    type: 'build' | 'break'
+    ownerUserId: string | null
+    ownerName: string | null
+    ownerColor: string | null
+  }>()
+  
   calendarData.forEach(day => {
     day.habits.forEach(habit => {
       if (!allHabits.has(habit.habitId)) {
         allHabits.set(habit.habitId, {
           name: habit.name,
           emoji: habit.emoji,
-          type: habit.type
+          type: habit.type,
+          ownerUserId: habit.ownerUserId,
+          ownerName: habit.ownerName,
+          ownerColor: habit.ownerColor
         })
       }
     })
   })
 
   const habits = Array.from(allHabits.entries())
+
+  // Group habits by name
+  const habitGroups = new Map<string, typeof habits>()
+  habits.forEach(([habitId, habitInfo]) => {
+    const groupName = habitInfo.name
+    if (!habitGroups.has(groupName)) {
+      habitGroups.set(groupName, [])
+    }
+    habitGroups.get(groupName)!.push([habitId, habitInfo])
+  })
+
+  // Sort groups by name
+  const sortedGroups = Array.from(habitGroups.entries()).sort(([a], [b]) => a.localeCompare(b))
 
   // Filter to only show days from the current month
   const [year, monthNum] = month.split('-').map(Number)
@@ -127,6 +154,17 @@ export default function HabitMatrixView({ month }: HabitMatrixViewProps) {
     return isToday ? 'border-blue-500 border-2' : 'border-gray-300 border'
   }
 
+  // Get all unique users
+  const uniqueUsers = new Map<string, { name: string; color: string }>()
+  habits.forEach(([, habitInfo]) => {
+    if (habitInfo.ownerUserId && habitInfo.ownerName) {
+      uniqueUsers.set(habitInfo.ownerUserId, {
+        name: habitInfo.ownerName,
+        color: habitInfo.ownerColor || '#6366f1'
+      })
+    }
+  })
+
   return (
     <div className="w-full">
       {/* Header with day numbers */}
@@ -144,75 +182,145 @@ export default function HabitMatrixView({ month }: HabitMatrixViewProps) {
         ))}
       </div>
 
-      {/* Matrix rows - one per habit */}
-      <div className="space-y-1">
-        {habits.map(([habitId, habitInfo]) => (
-          <div 
-            key={habitId} 
-            className="grid gap-1 items-center"
-            style={{ gridTemplateColumns: `200px repeat(${sortedDays.length}, 1fr)` }}
-          >
-            {/* Habit name */}
-            <div className="flex items-center gap-2 p-2 text-sm">
-              <span className="text-lg">{habitInfo.emoji || '⭐'}</span>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{habitInfo.name}</div>
-                <div className="text-xs text-gray-500 capitalize">{habitInfo.type}</div>
+      {/* Matrix rows - grouped by habit name */}
+      <div className="space-y-3">
+        {sortedGroups.map(([groupName, groupHabits], groupIndex) => (
+          <div key={groupName} className="space-y-1">
+            {/* Group header if multiple users have the same habit */}
+            {groupHabits.length > 1 && (
+              <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider pl-2 pb-1">
+                {groupName}
               </div>
-            </div>
+            )}
+            
+            {groupHabits.map(([habitId, habitInfo]) => (
+              <div 
+                key={habitId} 
+                className="grid gap-1 items-center"
+                style={{ gridTemplateColumns: `200px repeat(${sortedDays.length}, 1fr)` }}
+              >
+                {/* Habit name with user indicator */}
+                <div className="flex items-center gap-2 p-2 text-sm">
+                  <span className="text-lg">{habitInfo.emoji || '⭐'}</span>
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="font-medium truncate flex items-center gap-2">
+                        {/* User color indicator */}
+                        {habitInfo.ownerName && (
+                          <div className="flex items-center gap-1">
+                            <div 
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: habitInfo.ownerColor || '#6366f1' }}
+                              title={habitInfo.ownerName}
+                            />
+                            {groupHabits.length === 1 && (
+                              <span className="text-xs text-gray-500">
+                                {habitInfo.ownerName.split(' ')[0]}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {/* Show habit name only if single habit in group, otherwise show user name */}
+                        <span>
+                          {groupHabits.length > 1 
+                            ? habitInfo.ownerName || habitInfo.name
+                            : habitInfo.name}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 capitalize">{habitInfo.type}</div>
+                    </div>
+                  </div>
+                </div>
 
-            {/* Day cells */}
-            {sortedDays.map(day => {
-              const status = getHabitStatusForDay(habitId, day)
-              const cellColor = getCellColor(habitInfo.type, status.isSuccess, status.hasEvents)
-              const borderColor = getCellBorderColor(isToday(day.date))
-              
-              return (
-                <div
-                  key={`${habitId}-${day.date}`}
-                  className={`
-                    aspect-square rounded-sm cursor-pointer transition-all duration-200 hover:scale-110
-                    ${cellColor} ${borderColor}
-                  `}
-                  title={`${habitInfo.name} on ${day.date}: ${
-                    habitInfo.type === 'build' 
-                      ? (status.isSuccess ? 'Success' : 'Failed')
-                      : (status.hasEvents ? 'Had incidents' : 'Clean day')
-                  }`}
-                  onClick={() => setSelectedDay(day)}
-                />
-              )
-            })}
+                {/* Day cells */}
+                {sortedDays.map(day => {
+                  const status = getHabitStatusForDay(habitId, day)
+                  const cellColor = getCellColor(habitInfo.type, status.isSuccess, status.hasEvents)
+                  const borderColor = getCellBorderColor(isToday(day.date))
+                  
+                  return (
+                    <div
+                      key={`${habitId}-${day.date}`}
+                      className={`
+                        aspect-square rounded-sm cursor-pointer transition-all duration-200 hover:scale-110
+                        ${cellColor} ${borderColor}
+                      `}
+                      title={`${habitInfo.name} (${habitInfo.ownerName || 'You'}) on ${day.date}: ${
+                        habitInfo.type === 'build' 
+                          ? (status.isSuccess ? 'Success' : 'Failed')
+                          : (status.hasEvents ? 'Had incidents' : 'Clean day')
+                      }`}
+                      onClick={() => setSelectedDay(day)}
+                    />
+                  )
+                })}
+              </div>
+            ))}
+            
+            {/* Add spacing between groups */}
+            {groupIndex < sortedGroups.length - 1 && (
+              <div className="h-2" />
+            )}
           </div>
         ))}
       </div>
 
       {/* Legend */}
-      <div className="mt-8 flex items-center justify-center gap-8 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-500 rounded-sm"></div>
-          <span>Build habit success</span>
+      <div className="mt-8 space-y-3">
+        {/* Color meanings */}
+        <div className="flex items-center justify-center gap-8 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-500 rounded-sm"></div>
+            <span>Build habit success</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-red-500 rounded-sm"></div>
+            <span>Break habit failure</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gray-200 border border-gray-300 rounded-sm"></div>
+            <span>No activity / Other</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-500 rounded-sm"></div>
-          <span>Break habit failure</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-200 border border-gray-300 rounded-sm"></div>
-          <span>No activity / Build habit failure / Break habit success</span>
-        </div>
+
+        {/* User legend if multiple users */}
+        {uniqueUsers.size > 0 && (
+          <div className="flex items-center justify-center gap-4 text-sm">
+            <span className="text-gray-600 font-medium">Users:</span>
+            {Array.from(uniqueUsers.entries()).map(([userId, user]) => (
+              <div key={userId} className="flex items-center gap-1">
+                <div 
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: user.color }}
+                />
+                <span className="text-gray-700">{user.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Summary */}
       <div className="mt-4 text-center text-xs text-gray-500">
-        Matrix view: Habits as rows, days as columns. Green = build success, Red = break failure, Gray = no activity/other
+        Matrix view: Habits grouped by type, days as columns. Household habits show user indicators.
       </div>
 
       {/* Day Drawer */}
       {selectedDay && (
         <DayDrawer
           date={selectedDay.date}
-          habits={selectedDay.habits}
+          habits={selectedDay.habits.map(h => ({
+            habitId: h.habitId,
+            name: h.name,
+            emoji: h.emoji,
+            type: h.type,
+            target: h.target,
+            unit: h.unit,
+            progress: h.progress,
+            isSuccess: h.isSuccess,
+            intensity: h.intensity,
+            events: h.events
+          }))}
           isOpen={!!selectedDay}
           onClose={() => setSelectedDay(null)}
           onRefresh={() => {

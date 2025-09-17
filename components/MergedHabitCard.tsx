@@ -6,6 +6,8 @@ import { toast } from 'react-hot-toast'
 import { getHabitStats } from '@/lib/stats'
 import { getCurrentPeriod } from '@/lib/period'
 import Link from 'next/link'
+import { useSession } from '@/lib/auth-client'
+import LogSheet from './LogSheet'
 
 interface HabitWithOwner extends Habit {
   events?: Event[]
@@ -31,6 +33,11 @@ export default function MergedHabitCard({
 }: MergedHabitCardProps) {
   const [habitEvents, setHabitEvents] = useState<{ [habitId: string]: Event[] }>({})
   const [loading, setLoading] = useState(true)
+  const [showLogSheet, setShowLogSheet] = useState(false)
+  const { data: session } = useSession()
+  
+  // Find the current user's habit in the group
+  const currentUserHabit = habits.find(h => h.owner?.id === session?.user?.id)
 
   useEffect(() => {
     fetchAllEvents()
@@ -77,6 +84,7 @@ export default function MergedHabitCard({
       : ''
 
   return (
+    <>
     <Link href={`/habit-group/${templateKey}`} className="block">
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all duration-200 hover:scale-[1.01] cursor-pointer">
       {/* Header */}
@@ -97,7 +105,7 @@ export default function MergedHabitCard({
         </div>
       </div>
 
-      {/* Per-user progress rings */}
+      {/* Per-user progress bars */}
       {loading ? (
         <div className="space-y-3 mb-4">
           <div className="animate-pulse">
@@ -117,9 +125,10 @@ export default function MergedHabitCard({
             const userColor = habit.owner?.color || '#64748b'
             const userName = habit.owner?.name || 'Unknown User'
             const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase()
-
+            const isCurrentUser = habit.owner?.id === session?.user?.id
+          
           return (
-            <div key={habit.id} className="flex items-center space-x-3">
+            <div key={habit.id} className={`flex items-center space-x-3 ${isCurrentUser ? 'bg-blue-50 -mx-2 px-2 py-2 rounded-lg' : ''}`}>
               {/* User avatar */}
               <div 
                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0"
@@ -128,10 +137,12 @@ export default function MergedHabitCard({
                 {userInitials}
               </div>
 
-              {/* Progress ring */}
+              {/* Progress bar */}
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-slate-700">{userName}</span>
+                  <span className={`text-sm font-medium ${isCurrentUser ? 'text-blue-700' : 'text-slate-700'}`}>
+                    {isCurrentUser ? `${userName} (You)` : userName}
+                  </span>
                   <span className="text-sm text-slate-500">
                     {stats.currentPeriodProgress}
                     {primaryHabit.type === 'build' && `/${habit.target}`}
@@ -150,63 +161,86 @@ export default function MergedHabitCard({
                   />
                 </div>
               </div>
-
-              {/* Quick log button */}
-              <button
-                onClick={async (e) => {
-                  e.preventDefault() // Prevent link navigation
-                  e.stopPropagation() // Stop event bubbling to Link
-                  try {
-                    const response = await fetch(`/api/habits/${habit.id}/events`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        value: 1,
-                        source: 'ui',
-                        date: new Date().toISOString().split('T')[0]
-                      }),
-                    })
-
-                    if (response.ok) {
-                      toast.success(`Logged for ${userName}!`)
-                      fetchAllEvents() // Refresh the data
-                    } else {
-                      toast.error('Failed to log event')
-                    }
-                  } catch (error) {
-                    toast.error('Failed to log event')
-                  }
-                }}
-                className="w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-500/25 transition-all duration-200 hover:scale-105"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
             </div>
           )
         })}
       </div>
       )}
 
-      {/* Summary stats */}
-      <div className="border-t border-slate-100 pt-4">
-        <div className="flex justify-between text-sm">
-          <span className="text-slate-500">
-            {habits.length} member{habits.length !== 1 ? 's' : ''}
-          </span>
-          <span className="text-slate-500">
-            {loading ? '...' : habits.reduce((total, habit) => {
-              const events = habitEvents[habit.id] || []
-              const stats = getHabitStats(habit, events, 'America/New_York', 'MON')
-              return total + stats.currentPeriodProgress
-            }, 0)} total {unitDisplay}
-          </span>
+      {/* Action buttons for current user */}
+      {currentUserHabit && (
+        <div className="flex gap-3 pt-4 border-t border-slate-100">
+          <button
+            onClick={async (e) => {
+              e.preventDefault() // Prevent link navigation
+              e.stopPropagation() // Stop event bubbling to Link
+              try {
+                const quickValue = currentUserHabit.unit === 'minutes' ? 5 : 1
+                const response = await fetch(`/api/habits/${currentUserHabit.id}/events`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    value: quickValue,
+                  }),
+                })
+
+                if (response.ok) {
+                  toast.success('Logged successfully!')
+                  fetchAllEvents()
+                } else {
+                  toast.error('Failed to log event')
+                }
+              } catch (error) {
+                toast.error('Failed to log event')
+              }
+            }}
+            className="flex-1 py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-all duration-200 hover:scale-105 shadow-lg shadow-blue-500/25"
+          >
+            {currentUserHabit.type === 'build' 
+              ? (currentUserHabit.unit === 'minutes' ? '+5min' : '+1')
+              : 'Log Incident'
+            }
+          </button>
+          
+          <button
+            onClick={(e) => {
+              e.preventDefault() // Prevent link navigation
+              e.stopPropagation() // Stop event bubbling to Link
+              setShowLogSheet(true)
+            }}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-3 rounded-xl transition-all duration-200 hover:scale-105"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          </button>
         </div>
+      )}
+      
+      {/* Summary stats */}
+      <div className="mt-4 text-center text-sm text-slate-500">
+        {habits.length} member{habits.length !== 1 ? 's' : ''} • 
+        {loading ? ' ...' : ` ${habits.reduce((total, habit) => {
+          const events = habitEvents[habit.id] || []
+          const stats = getHabitStats(habit, events, 'America/New_York', 'MON')
+          return total + stats.currentPeriodProgress
+        }, 0)} total ${unitDisplay}`}
       </div>
     </div>
     </Link>
+    
+    {showLogSheet && currentUserHabit && (
+      <LogSheet 
+        habit={currentUserHabit} 
+        onClose={() => setShowLogSheet(false)} 
+        onLog={() => {
+          setShowLogSheet(false)
+          fetchAllEvents()
+        }} 
+      />
+    )}
+    </>
   )
 }
