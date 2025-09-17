@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 import { getHabitStats } from '@/lib/stats'
+import MonthCalendar from '@/components/MonthCalendar'
 
 export default function HabitDetailPage({ params }: { params: { id: string } }) {
   const [habit, setHabit] = useState<Habit | null>(null)
@@ -159,6 +160,15 @@ export default function HabitDetailPage({ params }: { params: { id: string } }) 
               </div>
             )
           })()}
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Monthly Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MonthCalendar habit={habit} events={events} />
         </CardContent>
       </Card>
 

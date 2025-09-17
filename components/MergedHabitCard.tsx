@@ -5,6 +5,7 @@ import { Habit, Event } from '@prisma/client'
 import { toast } from 'react-hot-toast'
 import { getHabitStats } from '@/lib/stats'
 import { getCurrentPeriod } from '@/lib/period'
+import Link from 'next/link'
 
 interface HabitWithOwner extends Habit {
   events?: Event[]
@@ -76,7 +77,8 @@ export default function MergedHabitCard({
       : ''
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all duration-200">
+    <Link href={`/habit-group/${templateKey}`} className="block">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all duration-200 hover:scale-[1.01] cursor-pointer">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
@@ -151,7 +153,9 @@ export default function MergedHabitCard({
 
               {/* Quick log button */}
               <button
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.preventDefault() // Prevent link navigation
+                  e.stopPropagation() // Stop event bubbling to Link
                   try {
                     const response = await fetch(`/api/habits/${habit.id}/events`, {
                       method: 'POST',
@@ -203,5 +207,6 @@ export default function MergedHabitCard({
         </div>
       </div>
     </div>
+    </Link>
   )
 }
