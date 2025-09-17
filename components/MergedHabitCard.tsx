@@ -5,6 +5,7 @@ import { Habit, Event } from '@prisma/client'
 import { toast } from 'react-hot-toast'
 import { getHabitStats } from '@/lib/stats'
 import { getCurrentPeriod } from '@/lib/period'
+import Link from 'next/link'
 import { useSession } from '@/lib/auth-client'
 import LogSheet from './LogSheet'
 
@@ -84,7 +85,8 @@ export default function MergedHabitCard({
 
   return (
     <>
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all duration-200">
+    <Link href={`/habit-group/${templateKey}`} className="block">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all duration-200 hover:scale-[1.01] cursor-pointer">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
@@ -169,7 +171,9 @@ export default function MergedHabitCard({
       {currentUserHabit && (
         <div className="flex gap-3 pt-4 border-t border-slate-100">
           <button
-            onClick={async () => {
+            onClick={async (e) => {
+              e.preventDefault() // Prevent link navigation
+              e.stopPropagation() // Stop event bubbling to Link
               try {
                 const quickValue = currentUserHabit.unit === 'minutes' ? 5 : 1
                 const response = await fetch(`/api/habits/${currentUserHabit.id}/events`, {
@@ -201,7 +205,11 @@ export default function MergedHabitCard({
           </button>
           
           <button
-            onClick={() => setShowLogSheet(true)}
+            onClick={(e) => {
+              e.preventDefault() // Prevent link navigation
+              e.stopPropagation() // Stop event bubbling to Link
+              setShowLogSheet(true)
+            }}
             className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-3 rounded-xl transition-all duration-200 hover:scale-105"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -221,6 +229,7 @@ export default function MergedHabitCard({
         }, 0)} total ${unitDisplay}`}
       </div>
     </div>
+    </Link>
     
     {showLogSheet && currentUserHabit && (
       <LogSheet 
